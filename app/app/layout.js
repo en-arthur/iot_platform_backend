@@ -65,38 +65,54 @@ export default function AppLayout({ children }) {
         }`}
       >
         {/* Sidebar Header */}
-        <div className="flex h-16 items-center justify-between border-b border-border px-3">
-          <Link
-            href="/app/projects"
-            className="flex items-center gap-2.5 font-bold tracking-tight overflow-hidden"
-            title="AI IoT Builder"
-          >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow">
-              <Cpu className="h-5 w-5" />
-            </div>
-            {sidebarOpen && (
+        <div
+          className={`flex h-16 items-center border-b border-border px-3 ${
+            sidebarOpen ? 'justify-between' : 'justify-center'
+          }`}
+        >
+          {sidebarOpen ? (
+            <Link
+              href="/app/projects"
+              className="flex items-center gap-2.5 font-bold tracking-tight overflow-hidden"
+              title="AI IoT Builder"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow">
+                <Cpu className="h-5 w-5" />
+              </div>
               <span className="text-base text-foreground truncate whitespace-nowrap transition-opacity duration-200">
                 AI IoT Builder
               </span>
-            )}
-          </Link>
+            </Link>
+          ) : (
+            <Tooltip text="AI IoT Builder">
+              <Link
+                href="/app/projects"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow hover:opacity-90 transition-opacity"
+                aria-label="AI IoT Builder"
+              >
+                <Cpu className="h-5 w-5" />
+              </Link>
+            </Tooltip>
+          )}
 
-          {/* Toggle Button on Desktop & Close Button on Mobile */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
-            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-          >
-            <span className="md:hidden">
-              <X className="h-4 w-4" />
-            </span>
-            <span className="hidden md:block">
-              {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </span>
-          </Button>
+          {/* Toggle Button: only rendered when sidebar is open to prevent overlapping the collapsed logo */}
+          {sidebarOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+            >
+              <span className="md:hidden">
+                <X className="h-4 w-4" />
+              </span>
+              <span className="hidden md:block">
+                <ChevronLeft className="h-4 w-4" />
+              </span>
+            </Button>
+          )}
         </div>
 
         {/* Quick Action: New Project */}
