@@ -158,14 +158,14 @@ export default function AppLayout({ children }) {
               <Menu className="h-5 w-5" />
             </Button>
             <div className="text-sm font-medium text-muted-foreground hidden sm:block">
-              Connected to: <span className="text-foreground font-mono font-semibold">FastAPI v1.0.0</span>
+              Server: <span className="text-foreground font-semibold">Online</span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-500 border border-emerald-500/20 hidden sm:inline-flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Contract Synced</span>
+              <span>System Ready</span>
             </span>
           </div>
         </header>
