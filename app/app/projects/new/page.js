@@ -18,6 +18,7 @@ import {
   Shield,
   Loader2,
   Sparkles,
+  Plus,
 } from 'lucide-react';
 
 const STEPS = [
@@ -41,6 +42,8 @@ export default function NewProjectWizard() {
     'Read temperature and humidity every 60 seconds. Put the MCU in deep sleep between cycles. If temperature exceeds 30°C, energize the fan relay. If it exceeds 35°C for 10 minutes, dispatch an urgent cloud alert over MQTT.'
   );
   const [interfaceType, setInterfaceType] = useState('web app'); // 'dashboard' | 'web app'
+  const [isCustomPeripheralSelected, setIsCustomPeripheralSelected] = useState(false);
+  const [customPeripheralsText, setCustomPeripheralsText] = useState('');
 
   // Library Data
   const [boards, setBoards] = useState([]);
@@ -64,11 +67,20 @@ export default function NewProjectWizard() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      const customList = isCustomPeripheralSelected && customPeripheralsText.trim()
+        ? customPeripheralsText.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+
+      const peripheralsNote = customList.length > 0
+        ? ` Additional custom components: ${customList.join(', ')}.`
+        : '';
+
       const project = await api.createProject({
         name: name || 'Smart Greenhouse Node',
-        description: goal || behaviorPrompt,
+        description: (goal || behaviorPrompt) + peripheralsNote,
         board_id: selectedBoard,
         interface_type: interfaceType,
+        custom_peripherals: customList,
       });
       router.push(`/app/projects/${project.id}`);
     } catch (err) {
@@ -221,7 +233,56 @@ export default function NewProjectWizard() {
                     </div>
                   );
                 })}
+
+                {/* Other / Custom Hardware Component Option */}
+                <div
+                  onClick={() => setIsCustomPeripheralSelected(!isCustomPeripheralSelected)}
+                  className={`p-3.5 rounded-xl border cursor-pointer flex items-start gap-3 transition-all ${
+                    isCustomPeripheralSelected
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-dashed border-border hover:bg-muted/50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isCustomPeripheralSelected}
+                    onChange={() => {}}
+                    className="mt-1"
+                  />
+                  <div className="text-xs space-y-1">
+                    <div className="font-semibold text-foreground flex items-center gap-2">
+                      <span>Other Component</span>
+                      <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded font-mono font-medium">
+                        Custom
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground">Type your own custom sensor, module, or actuator.</p>
+                  </div>
+                </div>
               </div>
+
+              {/* Input field when "Other" is selected */}
+              {isCustomPeripheralSelected && (
+                <div className="mt-3.5 p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-2 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-primary" />
+                    <label htmlFor="custom-peripherals-input" className="text-xs font-semibold text-foreground">
+                      Type Other Peripherals & Components
+                    </label>
+                  </div>
+                  <Input
+                    id="custom-peripherals-input"
+                    placeholder="e.g. Capacitive Soil Moisture Sensor v2, Neo-6M GPS, WS2812B RGB LED, Active Buzzer..."
+                    value={customPeripheralsText}
+                    onChange={(e) => setCustomPeripheralsText(e.target.value)}
+                    className="bg-background text-xs"
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Enter any custom components (separated by commas). AI will synthesize pin allocations and driver configs.
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -247,12 +308,6 @@ export default function NewProjectWizard() {
                 onChange={(e) => setBehaviorPrompt(e.target.value)}
                 placeholder="Describe sampling cycles, sleep modes, threshold triggers, and commands..."
               />
-            </div>
-            <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-400 shrink-0" />
-              <span>
-                AI will parse thresholds and declare explicit command signatures (e.g. <code>TRIGGER_FAN_FORCE_ON</code>) in the spec behavior section.
-              </span>
             </div>
           </CardContent>
         </Card>
