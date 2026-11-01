@@ -55,10 +55,6 @@ export default function LandingPage() {
           <div className="container max-w-7xl px-4 sm:px-8">
             <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
               <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
-                  <Zap className="h-3.5 w-3.5" />
-                  <span>ESP32-S3 Hardware Emulation & Browser Flashing Live</span>
-                </div>
                 <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
                   From Hardware Description to a <span className="text-primary underline decoration-primary/40 underline-offset-8">Working Device</span> in Minutes.
                 </h1>
@@ -323,7 +319,7 @@ export default function LandingPage() {
               </a>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-foreground">ESP32-S3 DevKitC-1</h3>
@@ -347,19 +343,6 @@ export default function LandingPage() {
                 </p>
                 <div className="text-xs font-mono bg-muted p-2.5 rounded">
                   Status: Pinout mapped, UF2 binary export available
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-foreground">STM32 Nucleo-L476RG</h3>
-                  <Badge variant="open">Unverified</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mb-4">
-                  ARM Cortex-M4 @ 80 MHz, 1MB Flash, ultra-low power modes.
-                </p>
-                <div className="text-xs font-mono bg-muted p-2.5 rounded">
-                  Status: Community schema in review
                 </div>
               </div>
             </div>
