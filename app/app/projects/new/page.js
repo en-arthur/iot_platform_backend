@@ -78,7 +78,7 @@ export default function NewProjectWizard() {
   };
 
   return (
-    <div className="container max-w-4xl p-6 md:p-10 space-y-8">
+    <div className="container max-w-4xl p-6 md:p-10 space-y-8 pb-24">
       {/* Stepper Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Create New Hardware Project</h1>

@@ -27,7 +27,9 @@ export default function AppLayout({ children }) {
   const { sidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
 
   const isMock = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
-  const isProjectWorkspace = pathname.match(/^\/app\/projects\/[^/]+/);
+  const isProjectWorkspace =
+    pathname.startsWith('/app/projects/') &&
+    !pathname.startsWith('/app/projects/new');
 
   const handleSignOut = async () => {
     if (isMock) {
