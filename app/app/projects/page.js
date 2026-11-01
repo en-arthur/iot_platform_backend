@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { formatDate } from '@/lib/utils';
-import { Plus, Cpu, ArrowRight, RefreshCw, Layout, Layers } from 'lucide-react';
+import { Plus, Cpu, ArrowRight, RefreshCw, Layout, Layers, Trash2, Loader2 } from 'lucide-react';
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const LIFECYCLE_BADGES = {
   draft: { label: 'Draft', variant: 'defaulted' },
@@ -21,6 +22,8 @@ const LIFECYCLE_BADGES = {
 export default function ProjectsPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -29,6 +32,20 @@ export default function ProjectsPage() {
       setProjects(data);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete) return;
+    setDeleting(true);
+    try {
+      await api.deleteProject(projectToDelete.id);
+      setProjects((prev) => prev.filter((p) => p.id !== projectToDelete.id));
+      setProjectToDelete(null);
+    } catch (err) {
+      alert(`Failed to delete project: ${err.message}`);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -91,7 +108,22 @@ export default function ProjectsPage() {
                     <Badge variant={badgeConfig.variant} className="capitalize">
                       {badgeConfig.label}
                     </Badge>
-                    <span className="text-xs font-mono text-muted-foreground">v{project.version || 1}.0</span>
+                    <div className="flex items-center gap-2 relative z-10">
+                      <span className="text-xs font-mono text-muted-foreground">v{project.version || 1}.0</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setProjectToDelete(project);
+                        }}
+                        className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        title="Delete project"
+                        aria-label={`Delete ${project.name}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <CardTitle className="text-base group-hover:text-primary transition-colors">
                     <Link href={`/app/projects/${project.id}`} className="focus:outline-none">
@@ -126,6 +158,39 @@ export default function ProjectsPage() {
           })}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={Boolean(projectToDelete)} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <DialogHeader>
+          <DialogTitle className="text-destructive flex items-center gap-2">
+            <Trash2 className="h-4 w-4" />
+            <span>Delete Project</span>
+          </DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete <strong className="text-foreground">{projectToDelete?.name}</strong>? This will remove its spec versions, firmware files, and live deployments.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setProjectToDelete(null)}
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleConfirmDelete}
+            disabled={deleting}
+            className="gap-1.5"
+          >
+            {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            <span>Delete Project</span>
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </div>
   );
 }
