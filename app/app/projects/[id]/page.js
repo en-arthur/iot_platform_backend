@@ -352,7 +352,10 @@ export default function SpecWorkspacePage({ params }) {
             {confirming ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : isAlreadyConfirmed ? (
-              'Spec Confirmed ✓'
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-white" />
+                <span>Spec Confirmed</span>
+              </span>
             ) : (
               'Confirm Spec (Sign-Off)'
             )}

@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   Cpu,
   Layers,
@@ -10,17 +13,33 @@ import {
   Terminal,
   Activity,
   ArrowRight,
-  ExternalLink,
   ChevronRight,
   HelpCircle,
+  AlertTriangle,
+  RefreshCw,
+  Lock,
+  Sliders,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 
+const fadeInUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (i = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      delay: i * 0.1,
+      ease: [0.25, 0.4, 0.25, 1],
+    },
+  }),
+};
+
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col overflow-x-hidden">
       {/* Sticky Navbar */}
       <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8">
@@ -54,34 +73,60 @@ export default function LandingPage() {
         <section className="relative overflow-hidden pt-20 pb-16 md:pt-28 md:pb-24 border-b border-border/40">
           <div className="container max-w-7xl px-4 sm:px-8">
             <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
-              <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={fadeInUp}
+                custom={0}
+                className="lg:col-span-7 space-y-6 text-center lg:text-left"
+              >
+                <motion.h1
+                  variants={fadeInUp}
+                  custom={1}
+                  className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground"
+                >
                   From Hardware Description to a <span className="text-primary underline decoration-primary/40 underline-offset-8">Working Device</span> in Minutes.
-                </h1>
-                <p className="text-lg text-muted-foreground sm:text-xl max-w-2xl mx-auto lg:mx-0">
-                  Hardware engineers describe their IoT device in plain language. AI proposes a verified project spec. You review, approve, and get production C++ firmware, cloud FastAPI backend, and web app verified on real silicon.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-2">
+                </motion.h1>
+
+                <motion.p
+                  variants={fadeInUp}
+                  custom={2}
+                  className="text-lg text-muted-foreground sm:text-xl max-w-2xl mx-auto lg:mx-0 leading-relaxed"
+                >
+                  Describe what your device does in simple words. We turn your requirements into ready-to-run device code, a cloud backend, and a web dashboard—tested and verified on real hardware.
+                </motion.p>
+
+                <motion.div
+                  variants={fadeInUp}
+                  custom={3}
+                  className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-2"
+                >
                   <Link href="/sign-up">
-                    <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-7">
+                    <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-7 shadow-lg hover:shadow-primary/20 transition-all">
                       Start Building Free
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                   <Link href="/app/projects/proj-greenhouse-01">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto text-base">
+                    <Button variant="outline" size="lg" className="w-full sm:w-auto text-base hover:bg-muted/80">
                       Explore Greenhouse Demo
                     </Button>
                   </Link>
-                </div>
-                <p className="text-xs text-muted-foreground pt-1">
+                </motion.div>
+
+                <motion.p variants={fadeInUp} custom={4} className="text-xs text-muted-foreground pt-1">
                   No credit card required • Strict contract validation • Single source-of-truth spec
-                </p>
-              </div>
+                </motion.p>
+              </motion.div>
 
               {/* Product Visual / Spec Architecture Card */}
-              <div className="lg:col-span-5">
-                <div className="rounded-2xl border border-border bg-card/80 p-5 shadow-2xl backdrop-blur relative overflow-hidden">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+                className="lg:col-span-5"
+              >
+                <div className="rounded-2xl border border-border bg-card/90 p-5 shadow-2xl backdrop-blur relative overflow-hidden group hover:border-primary/40 transition-all">
                   <div className="flex items-center justify-between pb-3 border-b border-border/60">
                     <div className="flex items-center gap-2">
                       <span className="h-3 w-3 rounded-full bg-red-500/80 inline-block" />
@@ -100,20 +145,20 @@ export default function LandingPage() {
                     <div>&quot;action&quot;: <span className="text-emerald-300">&quot;TRIGGER_FAN_FORCE_ON&quot;</span>,</div>
                     <div className="text-sky-400 font-semibold mt-3">// 3. Target Output Bundle</div>
                     <div className="flex items-center gap-2 text-slate-400">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       <span>ESP-IDF C++ Firmware (Dual OTA)</span>
                     </div>
                     <div className="flex items-center gap-2 text-slate-400">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       <span>FastAPI Telemetry Ingestion</span>
                     </div>
                     <div className="flex items-center gap-2 text-slate-400">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       <span>Web App Control Center</span>
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>
@@ -121,40 +166,71 @@ export default function LandingPage() {
         {/* Problem Statement */}
         <section className="py-20 bg-muted/30 border-b border-border/40">
           <div className="container max-w-7xl px-4 sm:px-8 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Why IoT Development Is Still Painful
-            </h2>
-            <p className="mt-4 text-base text-muted-foreground max-w-2xl mx-auto">
-              Building connected hardware usually means juggling mismatched pinouts, writing tedious driver glue code, and building fragmented cloud APIs from scratch.
-            </p>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-50px' }}
+              variants={fadeInUp}
+            >
+              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                Why IoT Development Is Still Painful
+              </h2>
+              <p className="mt-4 text-base text-muted-foreground max-w-2xl mx-auto">
+                Building connected hardware usually means juggling mismatched pinouts, writing tedious driver glue code, and building fragmented cloud APIs from scratch.
+              </p>
+            </motion.div>
+
             <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3 text-left">
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <div className="h-10 w-10 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center font-bold mb-4">
-                  !
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                whileHover={{ y: -6 }}
+                className="rounded-xl border border-border bg-card p-6 shadow-sm hover:border-destructive/40 transition-all"
+              >
+                <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center mb-4">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Pin Collisions & Bus Lockups</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                   Assigning a shared GPIO to both an I2C line and a switch bricks your prototype during field deployment.
                 </p>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold mb-4">
-                  ⚙
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                whileHover={{ y: -6 }}
+                className="rounded-xl border border-border bg-card p-6 shadow-sm hover:border-amber-500/40 transition-all"
+              >
+                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
+                  <RefreshCw className="h-5 w-5 text-amber-500" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Backend & Firmware Desync</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                   Changing a sensor metric unit or payload schema breaks cloud ingestion parsers and dashboards silently.
                 </p>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold mb-4">
-                  🔒
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                whileHover={{ y: -6 }}
+                className="rounded-xl border border-border bg-card p-6 shadow-sm hover:border-primary/40 transition-all"
+              >
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <Lock className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Unverified AI Hallucinations</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                   Generic LLMs generate code for hardware registers that don&apos;t exist. We enforce strict schema rules and real compilation.
                 </p>
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>
@@ -173,37 +249,42 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              <div className="relative rounded-xl border border-border bg-card p-6 shadow-sm">
-                <span className="text-3xl font-black text-primary/30">01</span>
-                <h3 className="mt-2 text-lg font-semibold text-foreground">Describe Device</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  State your sensors, behavior, thresholds, and target interface in plain language.
-                </p>
-              </div>
-
-              <div className="relative rounded-xl border border-border bg-card p-6 shadow-sm">
-                <span className="text-3xl font-black text-primary/30">02</span>
-                <h3 className="mt-2 text-lg font-semibold text-foreground">Review & Confirm Spec</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Examine the 12-section model. Pin conflicts and open fields are resolved before generation is unlocked.
-                </p>
-              </div>
-
-              <div className="relative rounded-xl border border-border bg-card p-6 shadow-sm">
-                <span className="text-3xl font-black text-primary/30">03</span>
-                <h3 className="mt-2 text-lg font-semibold text-foreground">Generate & Verify</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Stream C++ firmware and FastAPI backend generation. Pipeline validates compilation, emulation, and self-tests.
-                </p>
-              </div>
-
-              <div className="relative rounded-xl border border-border bg-card p-6 shadow-sm">
-                <span className="text-3xl font-black text-primary/30">04</span>
-                <h3 className="mt-2 text-lg font-semibold text-foreground">Flash & Deploy</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Plug in your real ESP32 board and flash over Web Serial directly from Chrome. Provision and monitor live.
-                </p>
-              </div>
+              {[
+                {
+                  step: '01',
+                  title: 'Describe Device',
+                  desc: 'State your sensors, behavior, thresholds, and target interface in plain language.',
+                },
+                {
+                  step: '02',
+                  title: 'Review & Confirm Spec',
+                  desc: 'Examine the 12-section model. Pin conflicts and open fields are resolved before generation is unlocked.',
+                },
+                {
+                  step: '03',
+                  title: 'Generate & Verify',
+                  desc: 'Stream C++ firmware and FastAPI backend generation. Pipeline validates compilation, emulation, and self-tests.',
+                },
+                {
+                  step: '04',
+                  title: 'Flash & Deploy',
+                  desc: 'Plug in your real ESP32 board and flash over Web Serial directly from Chrome. Provision and monitor live.',
+                },
+              ].map((item, idx) => (
+                <motion.div
+                  key={item.step}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: idx * 0.1 }}
+                  whileHover={{ y: -4 }}
+                  className="relative rounded-xl border border-border bg-card p-6 shadow-sm hover:border-primary/50 transition-all"
+                >
+                  <span className="text-3xl font-black text-primary/30">{item.step}</span>
+                  <h3 className="mt-2 text-lg font-semibold text-foreground">{item.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                </motion.div>
+              ))}
             </div>
           </div>
         </section>
@@ -221,53 +302,55 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-xl border border-border bg-card p-6">
-                <Layers className="h-6 w-6 text-primary mb-3" />
-                <h3 className="font-semibold text-base text-foreground">One Source-of-Truth Spec</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  12 structured sections cover metadata, peripherals, MQTT connectivity, security, OTA rollback, and provenance.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-6">
-                <Cpu className="h-6 w-6 text-primary mb-3" />
-                <h3 className="font-semibold text-base text-foreground">Verified Hardware Library</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Pre-validated pinouts, I2C addresses, and timing characteristics for popular MCUs and sensors.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-6">
-                <Activity className="h-6 w-6 text-primary mb-3" />
-                <h3 className="font-semibold text-base text-foreground">Build & Test on Real Silicon</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Automated test suites run against virtual QEMU emulators and submit physical on-device self-test reports.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-6">
-                <Terminal className="h-6 w-6 text-primary mb-3" />
-                <h3 className="font-semibold text-base text-foreground">Dashboard or Full Web App</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Choose between pure telemetry monitoring or an interactive Web App with RBAC and authorized device commands.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-6">
-                <ShieldCheck className="h-6 w-6 text-primary mb-3" />
-                <h3 className="font-semibold text-base text-foreground">Secure by Default</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Mutual TLS 1.3, ECDSA P-256 certificates, AES flash encryption, and one-time provisioned device secrets.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-6">
-                <Radio className="h-6 w-6 text-primary mb-3" />
-                <h3 className="font-semibold text-base text-foreground">Dual-Partition OTA Rollback</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Over-the-air firmware upgrades automatically revert to partition A if on-boot self-tests fail.
-                </p>
-              </div>
+              {[
+                {
+                  icon: Layers,
+                  title: 'One Source-of-Truth Spec',
+                  desc: '12 structured sections cover metadata, peripherals, MQTT connectivity, security, OTA rollback, and provenance.',
+                },
+                {
+                  icon: Cpu,
+                  title: 'Verified Hardware Library',
+                  desc: 'Pre-validated pinouts, I2C addresses, and timing characteristics for popular MCUs and sensors.',
+                },
+                {
+                  icon: Activity,
+                  title: 'Build & Test on Real Silicon',
+                  desc: 'Automated test suites run against virtual QEMU emulators and submit physical on-device self-test reports.',
+                },
+                {
+                  icon: Terminal,
+                  title: 'Dashboard or Full Web App',
+                  desc: 'Choose between pure telemetry monitoring or an interactive Web App with RBAC and authorized device commands.',
+                },
+                {
+                  icon: ShieldCheck,
+                  title: 'Secure by Default',
+                  desc: 'Mutual TLS 1.3, ECDSA P-256 certificates, AES flash encryption, and one-time provisioned device secrets.',
+                },
+                {
+                  icon: Radio,
+                  title: 'Dual-Partition OTA Rollback',
+                  desc: 'Over-the-air firmware upgrades automatically revert to partition A if on-boot self-tests fail.',
+                },
+              ].map((feat, i) => {
+                const Icon = feat.icon;
+                return (
+                  <motion.div
+                    key={feat.title}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: i * 0.08 }}
+                    whileHover={{ y: -4 }}
+                    className="rounded-xl border border-border bg-card p-6 hover:border-primary/40 transition-all shadow-sm"
+                  >
+                    <Icon className="h-6 w-6 text-primary mb-3" />
+                    <h3 className="font-semibold text-base text-foreground">{feat.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{feat.desc}</p>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -275,7 +358,13 @@ export default function LandingPage() {
         {/* Trust Section for Engineers */}
         <section className="py-20 border-b border-border/40">
           <div className="container max-w-7xl px-4 sm:px-8">
-            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-8 sm:p-12">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="rounded-2xl border border-primary/20 bg-primary/5 p-8 sm:p-12 shadow-sm"
+            >
               <div className="max-w-3xl">
                 <Badge variant="default">Engineering Transparency</Badge>
                 <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -299,7 +388,7 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </section>
 
@@ -320,7 +409,13 @@ export default function LandingPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -4 }}
+                className="rounded-xl border border-border bg-card p-6 shadow-sm transition-all"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-foreground">ESP32-S3 DevKitC-1</h3>
                   <Badge variant="confirmed">Tested</Badge>
@@ -331,9 +426,16 @@ export default function LandingPage() {
                 <div className="text-xs font-mono bg-muted p-2.5 rounded">
                   Status: Full Web Serial Flashing + HIL QEMU Simulation
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                whileHover={{ y: -4 }}
+                className="rounded-xl border border-border bg-card p-6 shadow-sm transition-all"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-foreground">Raspberry Pi Pico W</h3>
                   <Badge variant="defaulted">Draft</Badge>
@@ -344,7 +446,7 @@ export default function LandingPage() {
                 <div className="text-xs font-mono bg-muted p-2.5 rounded">
                   Status: Pinout mapped, UF2 binary export available
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>
@@ -359,7 +461,7 @@ export default function LandingPage() {
                   <HelpCircle className="h-4 w-4 text-primary" />
                   What is the difference between a Dashboard and a Web App?
                 </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                   A <strong>Dashboard</strong> is read-only telemetry monitoring (charts, tiles, alert thresholds). A <strong>Web App</strong> bundles full user authentication, role-based controls, and interactive command dispatch that triggers physical actuators according to the behavior section.
                 </p>
               </div>
@@ -369,7 +471,7 @@ export default function LandingPage() {
                   <HelpCircle className="h-4 w-4 text-primary" />
                   Does AI directly write code to my MCU without my consent?
                 </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                   Never. AI only produces <strong>Spec Proposals</strong> with an explicit breakdown of old vs new values. You must review and click <strong>Approve</strong>. Spec confirmation is blocked if any electrical or completeness errors exist.
                 </p>
               </div>
@@ -379,7 +481,7 @@ export default function LandingPage() {
                   <HelpCircle className="h-4 w-4 text-primary" />
                   Can I flash boards directly from the web browser?
                 </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                   Yes! We use the Web Serial API combined with <code>esptool-js</code>. Connect your ESP32-S3 over standard USB-C in Chrome, Edge, or Opera, and flash compiled firmware binaries in seconds.
                 </p>
               </div>
