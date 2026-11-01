@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import chat, health, library, projects, proposals
+from app.api.v1.endpoints import chat, files, health, library, projects, proposals
 
 api_router = APIRouter()
 
@@ -17,6 +17,10 @@ api_router.include_router(proposals.router)
 
 # AI Chat & SSE Stream router
 api_router.include_router(chat.router)
+
+# Code Generation & Files router
+api_router.include_router(files.router)
+
 
 
 
