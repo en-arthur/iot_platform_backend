@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   Plus,
+  Usb,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -23,9 +24,10 @@ import { useUIStore } from '@/lib/store/useUIStore';
 export default function AppLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { sidebarOpen, toggleSidebar } = useUIStore();
+  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
 
   const isMock = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
+  const isProjectWorkspace = pathname.match(/^\/app\/projects\/[^/]+/);
 
   const handleSignOut = async () => {
     if (isMock) {
@@ -43,6 +45,114 @@ export default function AppLayout({ children }) {
     { label: 'Settings', href: '/app/settings', icon: Settings },
   ];
 
+  /* =========================================================================
+     1. WORKSPACE MODE (Left 56px Icon Rail, No Separate Top Header Bar)
+     ========================================================================= */
+  if (isProjectWorkspace) {
+    return (
+      <div className="flex h-screen w-screen overflow-hidden bg-background">
+        {/* Mobile/Tablet Drawer Backdrop for Rail when opened on <1280px */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm xl:hidden"
+            onClick={toggleSidebar}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* 56px Left Icon Rail (replaces 255px sidebar) */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 flex flex-col items-center justify-between border-r border-border bg-card py-3.5 px-2 w-[56px] min-w-[56px] max-w-[56px] shrink-0 transition-transform duration-200 xl:static xl:translate-x-0 ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+          aria-label="Workspace navigation rail"
+        >
+          {/* Top: Logo, Projects, Settings */}
+          <div className="flex flex-col items-center gap-3.5 w-full">
+            <Tooltip text="AI IoT Builder">
+              <Link
+                href="/app/projects"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm hover:opacity-90 transition-opacity"
+                aria-label="AI IoT Builder home"
+              >
+                <Cpu className="h-5 w-5" />
+              </Link>
+            </Tooltip>
+
+            <nav className="flex flex-col items-center gap-2 w-full pt-1" aria-label="Main navigation">
+              <Tooltip text="Projects">
+                <Link
+                  href="/app/projects"
+                  aria-label="Projects list"
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                    pathname === '/app/projects'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <FolderGit2 className="h-4 w-4" />
+                </Link>
+              </Tooltip>
+
+              <Tooltip text="Settings">
+                <Link
+                  href="/app/settings"
+                  aria-label="Settings"
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                    pathname.startsWith('/app/settings')
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <Settings className="h-4 w-4" />
+                </Link>
+              </Tooltip>
+            </nav>
+          </div>
+
+          {/* Bottom: Board connection icon with live dot, theme toggle, avatar */}
+          <div className="flex flex-col items-center gap-3 w-full">
+            <Tooltip text="Board Connection (ESP32 Live)">
+              <div
+                className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                aria-label="Board connection status: ESP32 Live"
+              >
+                <Usb className="h-4 w-4" />
+                <span
+                  className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card"
+                  aria-label="Board connected"
+                />
+              </div>
+            </Tooltip>
+
+            <Tooltip text="Toggle theme">
+              <div className="flex items-center justify-center" aria-label="Theme toggle">
+                <ThemeToggle />
+              </div>
+            </Tooltip>
+
+            <Tooltip text="Sarah Chen (Hardware Engineer)">
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary select-none"
+                aria-label="User avatar: Sarah Chen"
+              >
+                SC
+              </div>
+            </Tooltip>
+          </div>
+        </aside>
+
+        {/* Main Workspace Canvas (Occupies full viewport width minus 56px rail) */}
+        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  /* =========================================================================
+     2. STANDARD MODE (Projects List, New Wizard, Settings)
+     ========================================================================= */
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile Backdrop Overlay */}
@@ -54,15 +164,11 @@ export default function AppLayout({ children }) {
         />
       )}
 
-      {/* Adjustable Sidebar (Closed/Icon-only by default on desktop) */}
+      {/* Adjustable Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-all duration-300 ease-in-out md:static ${
-          // Mobile: slide in/out
           sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'
-        } ${
-          // Desktop: w-64 when open, w-16 when closed (icon-only rail)
-          sidebarOpen ? 'md:w-64' : 'md:w-16'
-        }`}
+        } ${sidebarOpen ? 'md:w-64' : 'md:w-16'}`}
       >
         {/* Sidebar Header */}
         <div
@@ -95,7 +201,6 @@ export default function AppLayout({ children }) {
             </Tooltip>
           )}
 
-          {/* Toggle Button: only rendered when sidebar is open to prevent overlapping the collapsed logo */}
           {sidebarOpen && (
             <Button
               variant="ghost"
@@ -177,25 +282,6 @@ export default function AppLayout({ children }) {
             );
           })}
         </nav>
-
-        {/* Hardware Status Tag (Full when open, minimal dot when collapsed) */}
-        {sidebarOpen ? (
-          <div className="mx-3 my-2 rounded-lg border border-border/80 bg-muted/40 p-3 text-xs">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span className="font-semibold text-foreground">Web Serial</span>
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-            </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              FastAPI mock mode active. Chrome USB driver connected.
-            </p>
-          </div>
-        ) : (
-          <div className="my-2 flex justify-center">
-            <Tooltip text="Web Serial Connected">
-              <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
-            </Tooltip>
-          </div>
-        )}
 
         {/* User Footer Menu */}
         <div className="border-t border-border p-2">
