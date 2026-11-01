@@ -16,10 +16,10 @@ export default function AuthLayout({ children }) {
           </Link>
           <div className="mt-20 space-y-6">
             <h2 className="text-3xl font-extrabold tracking-tight text-white leading-tight">
-              Single Source of Truth for Hardware & Firmware.
+              One Place for Your Hardware & Software.
             </h2>
             <p className="text-slate-400 text-base leading-relaxed">
-              Define your device architecture once. AI synthesizes verifiable firmware and backends with zero pinout collisions.
+              Set up your device idea once. We take care of the code, check for pin mistakes, and connect it to the cloud so everything just works.
             </p>
             <div className="space-y-4 pt-6">
               <div className="flex items-center gap-3 text-sm text-slate-300">
