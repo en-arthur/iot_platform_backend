@@ -6,7 +6,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.models.project import Project, ProjectConfirmResponse, ProjectCreate
 from app.models.spec import FieldPatchItem, SpecDiff, SpecVersionSummary
+from app.models.validation import ValidationIssue
 from app.services.spec_engine import SpecEngine
+from app.validation.engine import validation_engine
 
 
 class ProjectRepository:
@@ -129,17 +131,46 @@ class ProjectRepository:
         project.updated_at = datetime.now(timezone.utc).isoformat()
         return current_spec, sorted(list(set(all_affected)))
 
+    def validate_spec(self, project_id: str, user_id: str) -> List[ValidationIssue]:
+        project = self.get_project(project_id, user_id)
+        spec = self.get_spec(project_id, user_id)
+        val_res = validation_engine.validate_spec(spec)
+
+        # Update lifecycle to validated if no errors, or draft if errors exist
+        if val_res.can_confirm and project.lifecycle == "draft":
+            project.lifecycle = "validated"
+        elif not val_res.can_confirm and project.lifecycle == "validated":
+            project.lifecycle = "draft"
+
+        return val_res.issues
+
     def confirm_spec(self, project_id: str, user_id: str) -> ProjectConfirmResponse:
-        """Enforces SERVER-SIDE confirmation gate: rejected (409 Conflict) if any open field exists."""
+        """Enforces SERVER-SIDE confirmation gate: rejected (409 Conflict) if any open field or error issue exists."""
         project = self.get_project(project_id, user_id)
         spec = self.get_spec(project_id, user_id)
 
-        # Check for open blocking fields
+        # 1. Run 5-layer validation
+        val_res = validation_engine.validate_spec(spec)
+        blocking_errors = [i for i in val_res.issues if i.severity == "error"]
+
+        # 2. Check for open blocking fields
         open_fields = SpecEngine.get_open_blocking_fields(spec)
-        if open_fields:
+        for f in open_fields:
+            if not any(i.field_path == f for i in blocking_errors):
+                blocking_errors.append(
+                    ValidationIssue(
+                        id=f"comp-open-{f}",
+                        layer="completeness",
+                        severity="error",
+                        field_path=f,
+                        message=f"Field '{f}' is open and must be completed before confirmation.",
+                    )
+                )
+
+        if blocking_errors:
             raise ConflictError(
-                detail=f"Cannot confirm spec: {len(open_fields)} open blocking field(s) require resolution",
-                reasons=[f"Field '{f}' is open and must be completed" for f in open_fields],
+                detail=f"Cannot confirm spec: {len(blocking_errors)} error-level issue(s) require resolution",
+                reasons=[f"[{i.layer.upper()}] {i.field_path}: {i.message}" for i in blocking_errors],
             )
 
         # Successful confirmation: transition lifecycle and mint new immutable version

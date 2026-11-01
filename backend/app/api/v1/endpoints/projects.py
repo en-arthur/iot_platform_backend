@@ -5,6 +5,7 @@ from app.db.repositories.project_repo import project_repo
 from app.models.auth import AuthUser
 from app.models.project import Project, ProjectConfirmResponse, ProjectCreate
 from app.models.spec import FieldPatchItem, SpecDiff, SpecVersionSummary
+from app.models.validation import ValidationIssue
 
 router = APIRouter(prefix="/projects", tags=["Projects & Spec Engine"])
 
@@ -58,6 +59,15 @@ async def patch_spec_fields(
         "spec": updated_spec,
         "affected_sections": affected_sections,
     }
+
+
+@router.post("/{project_id}/spec/validate", response_model=List[ValidationIssue])
+async def validate_project_spec(
+    project_id: str,
+    current_user: AuthUser = Depends(get_current_user),
+) -> List[ValidationIssue]:
+    """Execute 5-layer validation (completeness, electrical, logical, resource, security)."""
+    return project_repo.validate_spec(project_id=project_id, user_id=current_user.id)
 
 
 @router.post("/{project_id}/spec/confirm", response_model=ProjectConfirmResponse)

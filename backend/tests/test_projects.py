@@ -104,3 +104,37 @@ def test_cross_user_isolation(client):
     # User B attempting to read user A's project is forbidden
     res = client.get(f"/api/v1/projects/{project_id}", headers=user_b)
     assert res.status_code in (403, 404)
+
+
+def test_validate_spec_endpoint_and_pin_conflict_gate(client):
+    headers = {"Authorization": "Bearer mock-user-dan"}
+    create_payload = {"name": "Collision Test Node", "board_id": "esp32-s3-devkitc-1"}
+    p_res = client.post("/api/v1/projects", json=create_payload, headers=headers)
+    project_id = p_res.json()["id"]
+
+    # First validate: open field target_deployment_date is flagged
+    val_res = client.post(f"/api/v1/projects/{project_id}/spec/validate", headers=headers)
+    assert val_res.status_code == 200
+    issues = val_res.json()
+    assert any(i["layer"] == "completeness" and i["severity"] == "error" for i in issues)
+
+    # Patch open field, but introduce an electrical pin collision (GPIO4 shared)
+    patch_payload = [
+        {"path": "metadata.target_deployment_date", "value": "2026-12-01", "state": "confirmed"},
+        {"path": "peripherals.bme280_sda_pin", "value": "GPIO4", "state": "confirmed"},
+        {"path": "peripherals.button_pin", "value": "GPIO4", "state": "confirmed"},
+    ]
+    client.patch(f"/api/v1/projects/{project_id}/spec/fields", json=patch_payload, headers=headers)
+
+    # Validate again: pin collision is flagged
+    val_res2 = client.post(f"/api/v1/projects/{project_id}/spec/validate", headers=headers)
+    assert val_res2.status_code == 200
+    issues2 = val_res2.json()
+    electrical_errors = [i for i in issues2 if i["layer"] == "electrical" and i["severity"] == "error"]
+    assert len(electrical_errors) >= 2
+
+    # Confirmation MUST be blocked by electrical error
+    confirm_res = client.post(f"/api/v1/projects/{project_id}/spec/confirm", headers=headers)
+    assert confirm_res.status_code == 409
+    assert "error-level issue(s) require resolution" in confirm_res.json()["message"]
+
