@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, library, projects
+from app.api.v1.endpoints import chat, health, library, projects, proposals
 
 api_router = APIRouter()
 
@@ -11,5 +11,12 @@ api_router.include_router(library.router)
 
 # Projects & Spec Engine router
 api_router.include_router(projects.router)
+
+# AI Proposals router
+api_router.include_router(proposals.router)
+
+# AI Chat & SSE Stream router
+api_router.include_router(chat.router)
+
 
 
