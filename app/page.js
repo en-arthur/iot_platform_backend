@@ -35,7 +35,6 @@ export default function LandingPage() {
             <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#hardware" className="hover:text-foreground transition-colors">Hardware</a>
-            <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -367,69 +366,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Placeholder */}
-        <section className="py-20 border-b border-border/40">
-          <div className="container max-w-7xl px-4 sm:px-8 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Simple, Transparent Pricing</h2>
-            <p className="mt-3 text-muted-foreground">Start free with standard emulators and mock testbeds.</p>
-
-            <div className="mt-12 grid gap-8 md:grid-cols-3 text-left">
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
-                <div>
-                  <h3 className="font-bold text-lg text-foreground">Hobby / Maker</h3>
-                  <div className="mt-4 text-3xl font-extrabold">$0 <span className="text-sm font-normal text-muted-foreground">/mo</span></div>
-                  <p className="mt-2 text-xs text-muted-foreground">For hobbyists and prototyping prototypes.</p>
-                  <ul className="mt-6 space-y-2.5 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Up to 3 active projects</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Web Serial browser flasher</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Community hardware library</li>
-                  </ul>
-                </div>
-                <Link href="/sign-up" className="mt-8">
-                  <Button variant="outline" className="w-full">Get Started</Button>
-                </Link>
-              </div>
-
-              <div className="rounded-xl border-2 border-primary bg-card p-6 shadow-xl relative flex flex-col justify-between">
-                <div className="absolute -top-3 right-6">
-                  <Badge variant="default" className="bg-primary text-primary-foreground">Recommended</Badge>
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-foreground">Pro Engineer</h3>
-                  <div className="mt-4 text-3xl font-extrabold">$49 <span className="text-sm font-normal text-muted-foreground">/mo</span></div>
-                  <p className="mt-2 text-xs text-muted-foreground">For independent engineers and hardware startups.</p>
-                  <ul className="mt-6 space-y-2.5 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Unlimited projects & spec versions</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Dedicated QEMU & Wokwi test runners</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Web App bundle with role-based auth</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Custom board pin-map definitions</li>
-                  </ul>
-                </div>
-                <Link href="/sign-up" className="mt-8">
-                  <Button className="w-full">Start 14-Day Pro Trial</Button>
-                </Link>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
-                <div>
-                  <h3 className="font-bold text-lg text-foreground">Team / Fleet</h3>
-                  <div className="mt-4 text-3xl font-extrabold">$199 <span className="text-sm font-normal text-muted-foreground">/mo</span></div>
-                  <p className="mt-2 text-xs text-muted-foreground">For hardware production teams and fleet operators.</p>
-                  <ul className="mt-6 space-y-2.5 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Fleet OTA provisioning & rollbacks</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Custom private peripheral libraries</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Self-hosted FastAPI backend deployment</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Priority SLA & hardware support</li>
-                  </ul>
-                </div>
-                <Link href="/sign-up" className="mt-8">
-                  <Button variant="outline" className="w-full">Contact Sales</Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* FAQ Section */}
         <section className="py-20 bg-muted/20 border-b border-border/40">
           <div className="container max-w-4xl px-4 sm:px-8">
@@ -497,7 +433,6 @@ export default function LandingPage() {
           <div className="flex gap-6">
             <Link href="/terms" className="hover:text-foreground">Terms of Service</Link>
             <Link href="/privacy" className="hover:text-foreground">Privacy Policy</Link>
-            <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
           </div>
         </div>
       </footer>
