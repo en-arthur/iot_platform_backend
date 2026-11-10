@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
     chat,
+    deployment,
+    devices,
     files,
     health,
     library,
@@ -31,6 +33,12 @@ api_router.include_router(files.router)
 
 # Verification & Sandboxes router
 api_router.include_router(verification.router)
+
+# Devices & MQTT Ingestion router
+api_router.include_router(devices.router)
+
+# Deployment router
+api_router.include_router(deployment.router)
 
 
 
