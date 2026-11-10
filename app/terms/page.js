@@ -8,7 +8,7 @@ export default function TermsPage() {
         <div className="container max-w-5xl px-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg">
             <Cpu className="h-5 w-5 text-primary" />
-            <span>AI IoT Builder</span>
+            <span>DeviceStack</span>
           </Link>
         </div>
       </header>
@@ -18,13 +18,13 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">1. Overview</h2>
           <p className="text-sm text-muted-foreground">
-            AI IoT Builder provides hardware engineers with assisted specification, firmware synthesis, and cloud backend generation. By accessing our services, you agree to these Terms.
+            DeviceStack Technologies provides hardware engineers with assisted specification, firmware synthesis, and cloud backend generation. By accessing our services, you agree to these Terms.
           </p>
         </section>
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">2. Firmware Safety & Engineering Disclaimers</h2>
           <p className="text-sm text-muted-foreground">
-            While AI IoT Builder enforces strict pinout and bus validation checks, all firmware must be independently reviewed and verified on physical hardware by a qualified engineer before deployment in safety-critical environments.
+            While DeviceStack Technologies enforces strict pinout and bus validation checks, all firmware must be independently reviewed and verified on physical hardware by a qualified engineer before deployment in safety-critical environments.
           </p>
         </section>
       </main>

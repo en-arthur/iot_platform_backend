@@ -8,7 +8,7 @@ export default function PrivacyPage() {
         <div className="container max-w-5xl px-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg">
             <Cpu className="h-5 w-5 text-primary" />
-            <span>AI IoT Builder</span>
+            <span>DeviceStack</span>
           </Link>
         </div>
       </header>

@@ -73,7 +73,7 @@ function SignInForm() {
       <div className="space-y-2 text-left">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Sign In</h1>
         <p className="text-sm text-muted-foreground">
-          Welcome back to AI IoT Builder. Enter your credentials to access your spec workspaces.
+          Welcome back to DeviceStack. Enter your credentials to access your spec workspaces.
         </p>
       </div>
 

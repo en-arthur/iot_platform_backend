@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
       <div className="space-y-2 text-left">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Set New Password</h1>
         <p className="text-sm text-muted-foreground">
-          Choose a secure new password for your AI IoT Builder account.
+          Choose a secure new password for your DeviceStack account.
         </p>
       </div>
 

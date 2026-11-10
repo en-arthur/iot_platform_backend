@@ -53,7 +53,7 @@ export default function OnboardingPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-left">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome to AI IoT Builder</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome to DeviceStack</h1>
         <p className="text-sm text-muted-foreground">
           Tell us about yourself so we can tailor the hardware library and compiler pipeline defaults.
         </p>

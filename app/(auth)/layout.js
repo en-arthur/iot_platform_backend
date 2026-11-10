@@ -12,7 +12,7 @@ export default function AuthLayout({ children }) {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
               <Cpu className="h-5 w-5" />
             </div>
-            <span>AI IoT Builder</span>
+            <span>DeviceStack</span>
           </Link>
           <div className="mt-20 space-y-6">
             <h2 className="text-3xl font-extrabold tracking-tight text-white leading-tight">
@@ -48,7 +48,7 @@ export default function AuthLayout({ children }) {
         <div className="flex justify-between items-center w-full max-w-md mx-auto">
           <Link href="/" className="lg:hidden flex items-center gap-2 font-bold text-lg">
             <Cpu className="h-5 w-5 text-primary" />
-            <span>AI IoT Builder</span>
+            <span>DeviceStack</span>
           </Link>
           <div className="ml-auto">
             <ThemeToggle />

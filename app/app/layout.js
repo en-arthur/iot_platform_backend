@@ -71,11 +71,11 @@ export default function AppLayout({ children }) {
         >
           {/* Top: Logo, Projects, Settings */}
           <div className="flex flex-col items-center gap-3.5 w-full">
-            <Tooltip text="AI IoT Builder">
+            <Tooltip text="DeviceStack">
               <Link
                 href="/app/projects"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm hover:opacity-90 transition-opacity"
-                aria-label="AI IoT Builder home"
+                aria-label="DeviceStack home"
               >
                 <Cpu className="h-5 w-5" />
               </Link>
@@ -182,21 +182,21 @@ export default function AppLayout({ children }) {
             <Link
               href="/app/projects"
               className="flex items-center gap-2.5 font-bold tracking-tight overflow-hidden"
-              title="AI IoT Builder"
+              title="DeviceStack"
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow">
                 <Cpu className="h-5 w-5" />
               </div>
               <span className="text-base text-foreground truncate whitespace-nowrap transition-opacity duration-200">
-                AI IoT Builder
+                DeviceStack
               </span>
             </Link>
           ) : (
-            <Tooltip text="AI IoT Builder">
+            <Tooltip text="DeviceStack">
               <Link
                 href="/app/projects"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow hover:opacity-90 transition-opacity"
-                aria-label="AI IoT Builder"
+                aria-label="DeviceStack"
               >
                 <Cpu className="h-5 w-5" />
               </Link>

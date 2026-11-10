@@ -47,7 +47,7 @@ export default function LandingPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
               <Cpu className="h-5 w-5" />
             </div>
-            <span>AI IoT Builder</span>
+            <span>DeviceStack</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
@@ -309,7 +309,7 @@ export default function LandingPage() {
                 <p className="mt-2 text-muted-foreground">Verified pinouts and toolchain recipes ready out-of-the-box.</p>
               </div>
               <a
-                href="mailto:hardware@iotbuilder.dev?subject=Request%20Board%20Support"
+                href="mailto:support@devicestack.io?subject=Request%20Board%20Support"
                 className="mt-4 md:mt-0 text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
               >
                 Request a board <ChevronRight className="h-4 w-4" />
@@ -420,7 +420,7 @@ export default function LandingPage() {
         <div className="container max-w-7xl px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <Cpu className="h-4 w-4 text-primary" />
-            <span className="font-semibold text-foreground">AI IoT Builder</span>
+            <span className="font-semibold text-foreground">DeviceStack Technologies</span>
             <span>&copy; {new Date().getFullYear()} All rights reserved.</span>
           </div>
           <div className="flex gap-6">

@@ -114,7 +114,7 @@ lib_deps =
         # 3. main.cpp (Arduino Firmware Source)
         # =====================================================================
         main_cpp_content = f"""/**
- * AI IoT Builder Synthesized Arduino Firmware
+ * DeviceStack Technologies Synthesized Arduino Firmware
  * Board: {board_id}
  * Version: v{version}.0
  */
@@ -208,7 +208,7 @@ void setup() {{
     Serial.begin(115200);
     delay(1000);
     Serial.println("\\n==========================================");
-    Serial.println("  AI IoT Builder Arduino Node Initializing ");
+    Serial.println("  DeviceStack Node Initializing           ");
     Serial.println("==========================================");
 
     // Initialize GPIO Pin modes
