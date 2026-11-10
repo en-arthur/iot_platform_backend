@@ -109,6 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_verification_runs_project ON public.verification_
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.devices (
     id TEXT PRIMARY KEY,
+    device_id TEXT,
     project_id TEXT NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     secret_hash TEXT NOT NULL,
@@ -119,6 +120,13 @@ CREATE TABLE IF NOT EXISTS public.devices (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS device_id TEXT;
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS secret_hash TEXT;
+ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS project_id TEXT;
+
+-- Sync device_id with id if device_id is null
+UPDATE public.devices SET device_id = id WHERE device_id IS NULL;
+
 CREATE INDEX IF NOT EXISTS idx_devices_project_id ON public.devices(project_id);
 
 -- =============================================================================
@@ -126,13 +134,21 @@ CREATE INDEX IF NOT EXISTS idx_devices_project_id ON public.devices(project_id);
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.readings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    device_id TEXT NOT NULL REFERENCES public.devices(id) ON DELETE CASCADE,
-    project_id TEXT NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+    device_id TEXT,
+    project_id TEXT,
     metric TEXT NOT NULL,
     value NUMERIC NOT NULL,
     unit TEXT,
     recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure columns exist even if readings table was created by an older migration
+ALTER TABLE public.readings ADD COLUMN IF NOT EXISTS device_id TEXT;
+ALTER TABLE public.readings ADD COLUMN IF NOT EXISTS project_id TEXT;
+ALTER TABLE public.readings ADD COLUMN IF NOT EXISTS metric TEXT;
+ALTER TABLE public.readings ADD COLUMN IF NOT EXISTS value NUMERIC;
+ALTER TABLE public.readings ADD COLUMN IF NOT EXISTS unit TEXT;
+ALTER TABLE public.readings ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMPTZ DEFAULT NOW();
 
 CREATE INDEX IF NOT EXISTS idx_readings_device_recorded ON public.readings(device_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_readings_project_metric ON public.readings(project_id, metric, recorded_at DESC);
