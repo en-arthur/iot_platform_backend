@@ -48,6 +48,16 @@ class VerificationRepository:
             firmware_binary_url=f"/api/v1/runs/{run_id}/firmware",
         )
         self._runs[run_id] = run_obj
+
+        # Record audit log
+        from app.db.repositories.audit_repo import audit_repo
+        audit_repo.record_action(
+            action="VERIFICATION_RUN",
+            user_id=user_id,
+            project_id=project_id,
+            payload={"run_id": run_id, "provider": "e2b"},
+        )
+
         return run_obj
 
     async def execute_run_pipeline(self, run_id: str, user_id: str) -> VerificationRun:

@@ -41,6 +41,16 @@ class DeploymentRepository:
             message="Project deployed successfully. Cloud storage and MQTT ingress are active.",
         )
         self._deployments[project_id] = response
+
+        # Record audit log
+        from app.db.repositories.audit_repo import audit_repo
+        audit_repo.record_action(
+            action="PROJECT_DEPLOY",
+            user_id=user_id,
+            project_id=project_id,
+            payload={"deployment_id": deployment_id, "cloud_service_app_id": cloud_app_id},
+        )
+
         return response
 
     def get_deployment(self, project_id: str, user_id: str) -> DeploymentResponse:

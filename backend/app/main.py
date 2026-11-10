@@ -10,6 +10,7 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.exceptions import APIError
 from app.core.logging import setup_logging
+from app.core.rate_limit import RateLimiterMiddleware
 import logging
 
 setup_logging()
@@ -33,6 +34,9 @@ app = FastAPI(
     redoc_url=f"{settings.API_V1_STR}/redoc",
     lifespan=lifespan,
 )
+
+# Add Rate Limiting and Payload Protection Middleware
+app.add_middleware(RateLimiterMiddleware)
 
 # Configure CORS only for frontend origins
 app.add_middleware(

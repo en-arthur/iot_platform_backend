@@ -54,6 +54,16 @@ class FilesRepository:
 
         # Update lifecycle to 'generated'
         project.lifecycle = "generated"
+
+        # Record audit log
+        from app.db.repositories.audit_repo import audit_repo
+        audit_repo.record_action(
+            action="CODE_GENERATE",
+            user_id=user_id,
+            project_id=project_id,
+            payload={"files_count": len(generated), "scope": scope or ["firmware", "cloud", "interface"]},
+        )
+
         return generated
 
 

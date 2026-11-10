@@ -196,6 +196,15 @@ class ProjectRepository:
         }
         self._versions[project_id].append(version_record)
 
+        # Audit log entry
+        from app.db.repositories.audit_repo import audit_repo
+        audit_repo.record_action(
+            action="SPEC_CONFIRM",
+            user_id=user_id,
+            project_id=project_id,
+            payload={"version": new_version_num, "status": "confirmed"},
+        )
+
         return ProjectConfirmResponse(
             success=True,
             lifecycle="confirmed",

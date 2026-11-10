@@ -94,6 +94,15 @@ class DeviceRepository:
         self._telemetry[device_id] = []
         self._alerts[device_id] = []
 
+        # Record audit log
+        from app.db.repositories.audit_repo import audit_repo
+        audit_repo.record_action(
+            action="DEVICE_PROVISION",
+            user_id=user_id,
+            project_id=project_id,
+            payload={"device_id": device_id, "name": req.name},
+        )
+
         return DeviceProvisionResponse(
             device_id=device_id,
             project_id=project_id,
@@ -194,6 +203,15 @@ class DeviceRepository:
         }
 
         await mqtt_service.publish(topic, payload)
+
+        # Record audit log
+        from app.db.repositories.audit_repo import audit_repo
+        audit_repo.record_action(
+            action="DEVICE_COMMAND",
+            user_id=user_id,
+            project_id=dev.project_id,
+            payload={"device_id": device_id, "command": req.command, "params": req.params},
+        )
 
         return DeviceCommandResponse(
             command_id=cmd_id,

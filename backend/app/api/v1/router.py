@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
+    audit,
     chat,
     deployment,
     devices,
@@ -39,6 +40,9 @@ api_router.include_router(devices.router)
 
 # Deployment router
 api_router.include_router(deployment.router)
+
+# Audit & Governance router
+api_router.include_router(audit.router)
 
 
 
