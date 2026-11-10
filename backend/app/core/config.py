@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     E2B_API_KEY: Optional[str] = None
     DAYTONA_API_KEY: Optional[str] = None
 
+    # WorkersCraft Cloud Service
+    WORKERSCRAFT_URL: str = "http://localhost:8001"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
