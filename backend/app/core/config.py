@@ -35,17 +35,16 @@ class Settings(BaseSettings):
     MQTT_ADMIN_PASSWORD: Optional[str] = "adminpassword"
     MQTT_USE_TLS: bool = False
 
-    # AI / Agno Model Provider
-    AI_MODEL_PROVIDER: str = "openai"  # openai | anthropic | gemini
-    AI_MODEL_NAME: str = "gpt-4o"
+    # AI Model Provider (Defaults to Gemini)
+    AI_MODEL_PROVIDER: str = "gemini"  # gemini | openai | anthropic
+    AI_MODEL_NAME: str = "gemini-2.5-flash"
+    GEMINI_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None
-    GEMINI_API_KEY: Optional[str] = None
 
-    # Sandbox Runner Provider
-    SANDBOX_PROVIDER: str = "e2b"  # e2b | daytona
+    # Sandbox Runner Provider (Exclusively E2B)
+    SANDBOX_PROVIDER: str = "e2b"
     E2B_API_KEY: Optional[str] = None
-    DAYTONA_API_KEY: Optional[str] = None
 
     # WorkersCraft Cloud Service
     WORKERSCRAFT_URL: str = "http://localhost:8001"
