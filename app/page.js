@@ -51,7 +51,6 @@ export default function LandingPage() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
-            <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#hardware" className="hover:text-foreground transition-colors">Hardware</a>
           </nav>
@@ -235,60 +234,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* How It Works: 4 Steps */}
-        <section id="how-it-works" className="py-20 border-b border-border/40">
-          <div className="container max-w-7xl px-4 sm:px-8">
-            <div className="text-center max-w-3xl mx-auto">
-              <Badge variant="default">The Engineering Process</Badge>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                How It Works in 4 Steps
-              </h2>
-              <p className="mt-3 text-muted-foreground">
-                The single project spec is your source of truth. AI proposes changes; you confirm; nothing generates without your sign-off.
-              </p>
-            </div>
-
-            <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              {[
-                {
-                  step: '01',
-                  title: 'Describe Device',
-                  desc: 'State your sensors, behavior, thresholds, and target interface in plain language.',
-                },
-                {
-                  step: '02',
-                  title: 'Review & Confirm Spec',
-                  desc: 'Examine the 12-section model. Pin conflicts and open fields are resolved before generation is unlocked.',
-                },
-                {
-                  step: '03',
-                  title: 'Generate & Verify',
-                  desc: 'Stream C++ firmware and FastAPI backend generation. Pipeline validates compilation, emulation, and self-tests.',
-                },
-                {
-                  step: '04',
-                  title: 'Flash & Deploy',
-                  desc: 'Plug in your real ESP32 board and flash over Web Serial directly from Chrome. Provision and monitor live.',
-                },
-              ].map((item, idx) => (
-                <motion.div
-                  key={item.step}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: idx * 0.1 }}
-                  whileHover={{ y: -4 }}
-                  className="relative rounded-xl border border-border bg-card p-6 shadow-sm hover:border-primary/50 transition-all"
-                >
-                  <span className="text-3xl font-black text-primary/30">{item.step}</span>
-                  <h3 className="mt-2 text-lg font-semibold text-foreground">{item.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Key Features */}
         <section id="features" className="py-20 bg-muted/20 border-b border-border/40">
           <div className="container max-w-7xl px-4 sm:px-8">
@@ -352,43 +297,6 @@ export default function LandingPage() {
                 );
               })}
             </div>
-          </div>
-        </section>
-
-        {/* Trust Section for Engineers */}
-        <section className="py-20 border-b border-border/40">
-          <div className="container max-w-7xl px-4 sm:px-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="rounded-2xl border border-primary/20 bg-primary/5 p-8 sm:p-12 shadow-sm"
-            >
-              <div className="max-w-3xl">
-                <Badge variant="default">Engineering Transparency</Badge>
-                <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                  Inspect Every Line. Edit Protected Regions. Trust Build Logs.
-                </h2>
-                <p className="mt-4 text-muted-foreground leading-relaxed">
-                  We never lock you into a proprietary black box. You have full access to generated C++ firmware, Python FastAPI servers, and React interface files in the embedded Monaco editor. Insert your own custom calibration code inside protected regions—AI updates will never overwrite your manual edits.
-                </p>
-                <div className="mt-8 flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <span>Protected Code Annotations</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <span>Raw Streaming Compiler Logs</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <span>Side-by-Side Version Diffing</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
           </div>
         </section>
 
