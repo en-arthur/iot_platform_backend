@@ -31,6 +31,23 @@ services:
     volumes:
       - ./backend/app:/app/app:ro
 
+  # WorkersCraft AI Cloud Service (Multi-tenant app backend & JSONB storage)
+  cloud_service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: uvicorn cloud_service.app.main:app --host 0.0.0.0 --port 8001
+    container_name: workerscraft_cloud_service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=sqlite:///./cloudservice.db
+      - JWT_SECRET=${JWT_SECRET:-workerscraft-jwt-secret-key-32chars}
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000
+    volumes:
+      - ./backend/cloud_service:/app/cloud_service
+
   # Mosquitto MQTT Broker (Local message bus)
   mosquitto:
     image: eclipse-mosquitto:2.0
