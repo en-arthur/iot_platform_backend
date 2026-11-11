@@ -2,7 +2,7 @@ import hashlib
 import secrets
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from app.core.config import settings
 from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.db.repositories.project_repo import project_repo
