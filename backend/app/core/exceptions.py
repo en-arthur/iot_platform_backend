@@ -39,10 +39,15 @@ class ConflictError(APIError):
         )
 
 
-class SpecValidationError(APIError):
-    def __init__(self, detail: str = "Spec validation failed", issues: Optional[List[Any]] = None):
+class ValidationError(APIError):
+    def __init__(self, detail: str = "Validation failed", reasons: Optional[List[Any]] = None):
         super().__init__(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=detail,
-            reasons=issues,
+            reasons=reasons,
         )
+
+
+class SpecValidationError(ValidationError):
+    def __init__(self, detail: str = "Spec validation failed", issues: Optional[List[Any]] = None):
+        super().__init__(detail=detail, reasons=issues)
