@@ -38,14 +38,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install uv for fast dependency resolution
 RUN pip install uv
 
-# Copy project definition and README
+# Copy project definition, README, and application code
 COPY backend/pyproject.toml backend/README.md* ./
+COPY backend/app ./app
 
 # Install dependencies into system environment
 RUN uv pip install --system -e .
-
-# Copy backend application code
-COPY backend/app ./app
 
 # Expose ports (standard 8000 and Render default 10000)
 EXPOSE 8000 10000
