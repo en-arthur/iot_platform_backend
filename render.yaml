@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: devicestack-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SUPABASE_URL
+        value: https://your-project-ref.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: placeholder-supabase-anon-key
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: placeholder-supabase-service-role-key
+      - key: SUPABASE_JWT_SECRET
+        value: placeholder-supabase-jwt-secret
+      - key: FRONTEND_URL
+        value: https://your-frontend-domain.com
+      - key: BACKEND_CORS_ORIGINS
+        value: '["https://your-frontend-domain.com"]'
+      - key: MQTT_BROKER_HOST
+        value: broker.example.com
+      - key: MQTT_BROKER_PORT
+        value: "1883"
+      - key: MQTT_ADMIN_USER
+        value: admin
+      - key: MQTT_ADMIN_PASSWORD
+        value: placeholder-mqtt-password
+      - key: MQTT_USE_TLS
+        value: "false"
+      - key: AI_MODEL_PROVIDER
+        value: gemini
+      - key: AI_MODEL_NAME
+        value: gemini-2.5-flash
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SANDBOX_PROVIDER
+        value: e2b
+      - key: E2B_API_KEY
+        sync: false
+      - key: WORKERSCRAFT_URL
+        value: https://your-workerscraft-service.onrender.com
