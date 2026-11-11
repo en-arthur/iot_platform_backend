@@ -69,7 +69,7 @@ export default function NodeInterface() {{
         </div>
       </div>
 
-      {/* Telemetry Metric Cards */}
+      {{/* Telemetry Metric Cards */}}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
 """
         for m in metrics:
@@ -85,7 +85,7 @@ export default function NodeInterface() {{
 
         component_code += f"""      </div>
 
-      {/* Actuator Controls (Mapped to Behavior Declared Commands) */}
+      {{/* Actuator Controls (Mapped to Behavior Declared Commands) */}}
       <div className="p-5 rounded-xl border bg-gray-50 space-y-3">
         <h3 className="text-sm font-semibold text-gray-700">Hardware Actuator Commands</h3>
         <div className="flex flex-wrap gap-2.5">
