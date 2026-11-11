@@ -22,13 +22,13 @@ services:
       - key: BACKEND_CORS_ORIGINS
         value: '["https://your-frontend-domain.com"]'
       - key: MQTT_BROKER_HOST
-        value: broker.example.com
+        value: devicestack-mosquitto  # will resolve to the mosquitto service
       - key: MQTT_BROKER_PORT
         value: "1883"
       - key: MQTT_ADMIN_USER
         value: admin
       - key: MQTT_ADMIN_PASSWORD
-        value: placeholder-mqtt-password
+        sync: false
       - key: MQTT_USE_TLS
         value: "false"
       - key: AI_MODEL_PROVIDER
@@ -43,3 +43,15 @@ services:
         sync: false
       - key: WORKERSCRAFT_URL
         value: https://your-workerscraft-service.onrender.com
+
+  - type: web
+    name: devicestack-mosquitto
+    env: docker
+    dockerfilePath: ./mosquitto/Dockerfile
+    dockerContext: ./mosquitto
+    plan: starter
+    envVars:
+      - key: MQTT_ADMIN_USER
+        value: admin
+      - key: MQTT_ADMIN_PASSWORD
+        sync: false
