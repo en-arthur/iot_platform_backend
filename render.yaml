@@ -42,7 +42,7 @@ services:
       - key: E2B_API_KEY
         sync: false
       - key: WORKERSCRAFT_URL
-        value: https://your-workerscraft-service.onrender.com
+        value: https://devicestack-cloud.onrender.com
 
   - type: web
     name: devicestack-mosquitto
@@ -55,3 +55,34 @@ services:
         value: admin
       - key: MQTT_ADMIN_PASSWORD
         sync: false
+
+  - type: web
+    name: devicestack-cloud
+    env: docker
+    dockerfilePath: ./backend/cloud_service/Dockerfile
+    dockerContext: ./backend/cloud_service
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: devicestack-cloud-db
+          property: connectionString
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+
+databases:
+  - name: devicestack-cloud-db
+    plan: starter

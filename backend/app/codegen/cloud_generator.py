@@ -4,7 +4,7 @@ from app.models.files import GeneratedFile
 
 class CloudBackendGenerator:
     """Generates the Cloud Telemetry Ingestion Worker, Command Bridge, and
-    integration client for WorkersCraft CloudService.
+    integration client for DeviceStack Cloud Service.
     """
 
     @classmethod
@@ -22,7 +22,7 @@ class CloudBackendGenerator:
         high_temp_thresh = float(behavior.get("high_temperature_threshold_c", {}).get("value") or 30.0)
 
         # =====================================================================
-        # 1. cloud_service_client.py (WorkersCraft CloudService Integration)
+        # 1. cloud_service_client.py (DeviceStack Cloud Service Integration)
         # =====================================================================
         client_code = f"""import os
 import httpx
@@ -32,8 +32,8 @@ CLOUD_SERVICE_URL = os.getenv("CLOUD_SERVICE_URL", "http://localhost:8000")
 APP_ID = os.getenv("APP_ID", "{project_id}")
 
 
-class WorkersCraftClient:
-    \"\"\"Client integrating with WorkersCraft CloudService for multi-tenant auth,
+class DeviceStackCloudClient:
+    \"\"\"Client integrating with DeviceStack Cloud Service for multi-tenant auth,
     generic JSONB telemetry storage, and R2 file hosting.
     \"\"\"
 
@@ -43,7 +43,7 @@ class WorkersCraftClient:
         self.client = httpx.AsyncClient(timeout=10.0)
 
     async def register_app(self, name: str, owner_id: str) -> Dict[str, Any]:
-        \"\"\"Register app in WorkersCraft CloudService.\"\"\"
+        \"\"\"Register app in DeviceStack Cloud Service.\"\"\"
         res = await self.client.post(
             f"{{self.base_url}}/api/apps/register",
             json={{"name": name, "owner_id": owner_id}},
@@ -69,7 +69,7 @@ class WorkersCraftClient:
         return res.json()
 
 
-cloud_client = WorkersCraftClient()
+cloud_client = DeviceStackCloudClient()
 """
         files.append(
             GeneratedFile(
@@ -124,7 +124,7 @@ async def handle_telemetry_message(topic: str, payload_str: str):
         # 1. Evaluate real-time threshold alert rules
         await evaluate_alert_rules(data)
 
-        # 2. Persist to WorkersCraft CloudService
+        # 2. Persist to DeviceStack Cloud Service
         await cloud_client.store_reading(data)
 
     except json.JSONDecodeError:
