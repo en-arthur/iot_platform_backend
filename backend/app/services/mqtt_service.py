@@ -7,11 +7,13 @@ logger = logging.getLogger("app.services.mqtt")
 
 
 class MQTTService:
-    """Handles MQTT command publishing and telemetry ingestion.
-    The backend authenticates as the admin user and publishes commands
-    to per-device topics. ACL rules on the broker ensure devices can
-    only access their own topics.
-    Falls back safely in development/test mode if broker is unreachable.
+    """Handles MQTT command publishing via aiomqtt.
+    
+    When MQTT_USE_TLS=true (production/Render), connects over WSS (WebSocket Secure)
+    to the Mosquitto broker's public URL on port 443, since Render only exposes
+    services via HTTPS/WSS — not raw TCP.
+
+    When MQTT_USE_TLS=false (local development), connects directly via raw MQTT TCP.
     """
 
     def __init__(self):
@@ -26,18 +28,35 @@ class MQTTService:
         message_bytes = json.dumps(payload).encode("utf-8")
         try:
             import aiomqtt
-            tls_params = aiomqtt.TLSParameters() if self.use_tls else None
-            async with aiomqtt.Client(
-                hostname=self.host,
-                port=self.port,
-                username=self.username,
-                password=self.password,
-                tls_params=tls_params,
-                timeout=4,
-            ) as client:
-                await client.publish(topic, payload=message_bytes, qos=1)
-                logger.info(f"Published MQTT message to topic '{topic}'")
-                return True
+
+            if self.use_tls:
+                # Production (Render): connect over WSS.
+                # Render proxies HTTPS/WSS on port 443 → internal WebSocket listener.
+                async with aiomqtt.Client(
+                    hostname=self.host,
+                    port=443,
+                    username=self.username,
+                    password=self.password,
+                    tls_params=aiomqtt.TLSParameters(),
+                    websocket_path="/",
+                    timeout=5,
+                ) as client:
+                    await client.publish(topic, payload=message_bytes, qos=1)
+                    logger.info(f"Published MQTT/WSS message to '{topic}'")
+                    return True
+            else:
+                # Local development: raw TCP MQTT
+                async with aiomqtt.Client(
+                    hostname=self.host,
+                    port=self.port,
+                    username=self.username,
+                    password=self.password,
+                    timeout=5,
+                ) as client:
+                    await client.publish(topic, payload=message_bytes, qos=1)
+                    logger.info(f"Published MQTT message to '{topic}'")
+                    return True
+
         except Exception as e:
             logger.warning(f"MQTT publish to '{topic}' failed (fallback active): {e}")
             return True
