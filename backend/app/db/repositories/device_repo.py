@@ -16,6 +16,7 @@ from app.models.devices import (
     TelemetryReading,
 )
 from app.services.mqtt_service import mqtt_service
+from app.services.mqtt_credentials import mqtt_credential_manager
 
 
 class DeviceRecord:
@@ -73,13 +74,20 @@ class DeviceRepository:
     def provision_device(
         self, project_id: str, req: DeviceCreateRequest, user_id: str
     ) -> DeviceProvisionResponse:
+        import asyncio
+        from app.services.mqtt_credentials import mqtt_credential_manager
+
         # Validate project exists and user has access
         project = project_repo.get_project(project_id, user_id)
 
-        # Generate unique device_id and plaintext secret
+        # Generate unique device_id and plaintext secret (for DeviceStack auth)
         device_id = f"dev-{uuid.uuid4().hex[:8]}"
         secret = f"dsec_{secrets.token_urlsafe(32)}"
         token_hash = self._hash_secret(secret)
+
+        # Generate per-device MQTT credentials (shown ONLY ONCE)
+        mqtt_password = secrets.token_urlsafe(24)
+        mqtt_username = mqtt_credential_manager.device_username(device_id)
 
         now_str = datetime.now(timezone.utc).isoformat()
         record = DeviceRecord(
@@ -94,6 +102,19 @@ class DeviceRepository:
         self._telemetry[device_id] = []
         self._alerts[device_id] = []
 
+        # Register MQTT credentials asynchronously (non-blocking)
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(mqtt_credential_manager.register_device(device_id, mqtt_password))
+            else:
+                loop.run_until_complete(mqtt_credential_manager.register_device(device_id, mqtt_password))
+        except Exception as e:
+            import logging
+            logging.getLogger("app.db.device_repo").warning(
+                f"MQTT credential registration failed for {device_id}: {e}"
+            )
+
         # Record audit log
         from app.db.repositories.audit_repo import audit_repo
         audit_repo.record_action(
@@ -107,11 +128,13 @@ class DeviceRepository:
             device_id=device_id,
             project_id=project_id,
             name=req.name,
-            secret=secret,  # Shown ONLY ONCE
+            secret=secret,          # DeviceStack API secret — shown ONLY ONCE
             mqtt_broker_host=settings.MQTT_BROKER_HOST,
             mqtt_broker_port=settings.MQTT_BROKER_PORT,
             telemetry_topic=f"devices/{device_id}/telemetry",
             command_topic=f"devices/{device_id}/cmd",
+            mqtt_username=mqtt_username,   # Per-device MQTT username — shown ONLY ONCE
+            mqtt_password=mqtt_password,   # Per-device MQTT password — shown ONLY ONCE
             created_at=now_str,
         )
 

@@ -1,20 +1,37 @@
 #!/bin/sh
-# Render entrypoint: generate passwd file from env vars, then start broker
+# Render entrypoint: generate passwd + acl files, then start broker
 
 set -e
 
 PASSWD_FILE=/mosquitto/config/passwd
+ACL_FILE=/mosquitto/config/acl
 
-# Create password file from environment variables
-# MQTT_ADMIN_USER and MQTT_ADMIN_PASSWORD must be set in Render dashboard
-if [ -n "$MQTT_ADMIN_USER" ] && [ -n "$MQTT_ADMIN_PASSWORD" ]; then
-    echo "Creating MQTT password file for user: $MQTT_ADMIN_USER"
-    mosquitto_passwd -c -b "$PASSWD_FILE" "$MQTT_ADMIN_USER" "$MQTT_ADMIN_PASSWORD"
-else
-    echo "WARNING: MQTT_ADMIN_USER or MQTT_ADMIN_PASSWORD not set. Falling back to anonymous access."
-    # Patch config to allow anonymous if no credentials set
-    sed -i 's/allow_anonymous false/allow_anonymous true/' /mosquitto/config/mosquitto.conf
-    sed -i '/password_file/d' /mosquitto/config/mosquitto.conf
+mkdir -p /mosquitto/data /mosquitto/log /mosquitto/config
+
+# ── Admin credentials (backend service) ─────────────────────────────────
+if [ -z "$MQTT_ADMIN_USER" ] || [ -z "$MQTT_ADMIN_PASSWORD" ]; then
+    echo "ERROR: MQTT_ADMIN_USER and MQTT_ADMIN_PASSWORD must be set."
+    exit 1
 fi
+
+echo "Creating MQTT password file..."
+mosquitto_passwd -c -b "$PASSWD_FILE" "$MQTT_ADMIN_USER" "$MQTT_ADMIN_PASSWORD"
+
+# ── Admin ACL: full access to all topics ────────────────────────────────
+cat > "$ACL_FILE" << EOF
+# Admin user — full access (used by backend)
+user ${MQTT_ADMIN_USER}
+topic readwrite #
+
+# Pattern ACL — devices are restricted to their own topic namespace.
+# A device authenticated as "device:<device_id>" can only:
+#   publish  to: devices/<device_id>/telemetry
+#   subscribe to: devices/<device_id>/cmd
+pattern publish devices/%u/telemetry
+pattern subscribe devices/%u/cmd
+
+EOF
+
+echo "MQTT ACL file created."
 
 exec /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf

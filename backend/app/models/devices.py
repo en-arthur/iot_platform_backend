@@ -16,6 +16,8 @@ class DeviceProvisionResponse(BaseModel):
     mqtt_broker_port: int
     telemetry_topic: str
     command_topic: str
+    mqtt_username: str = Field(..., description="Per-device MQTT username. Use with mqtt_password to connect.")
+    mqtt_password: str = Field(..., description="Per-device MQTT password. Shown ONLY ONCE upon creation.")
     created_at: str
 
 

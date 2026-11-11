@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     MQTT_ADMIN_USER: Optional[str] = "admin"
     MQTT_ADMIN_PASSWORD: Optional[str] = "adminpassword"
     MQTT_USE_TLS: bool = False
+    MQTT_MGMT_API_URL: Optional[str] = None  # Optional sidecar API for dynamic credentials
 
     # AI Model Provider (Defaults to Gemini)
     AI_MODEL_PROVIDER: str = "gemini"  # gemini | openai | anthropic
