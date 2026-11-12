@@ -42,7 +42,7 @@ export default function NewProjectWizard() {
   const [behaviorPrompt, setBehaviorPrompt] = useState('');
   const [behaviorLoading, setBehaviorLoading] = useState(false);
   const [behaviorSource, setBehaviorSource] = useState(null); // 'ai' | 'template' | 'error'
-  const behaviorRequestedRef = useRef(false);
+  const behaviorDirtyRef = useRef(false);
   const [interfaceType, setInterfaceType] = useState('web app'); // 'dashboard' | 'web app'
   const [isCustomPeripheralSelected, setIsCustomPeripheralSelected] = useState(false);
   const [customPeripheralsText, setCustomPeripheralsText] = useState('');
@@ -79,9 +79,8 @@ export default function NewProjectWizard() {
   };
 
   // Draft the behavior spec from the Step 1 goal + Step 2 hardware.
-  const generateBehavior = async (force = false) => {
+  const generateBehavior = async () => {
     if (behaviorLoading) return;
-    if (!force && behaviorPrompt.trim()) return;
 
     setBehaviorLoading(true);
     try {
@@ -102,10 +101,10 @@ export default function NewProjectWizard() {
     }
   };
 
-  // Auto-generate once the user reaches the Behavior step, using their Step 1/2 answers.
+  // Auto-generate on entering the Behavior step. User edits are preserved when
+  // they navigate back and forth; Regenerate overrides them.
   useEffect(() => {
-    if (currentStep !== 3 || behaviorRequestedRef.current) return;
-    behaviorRequestedRef.current = true;
+    if (currentStep !== 3 || behaviorDirtyRef.current) return;
     generateBehavior();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
@@ -359,7 +358,10 @@ export default function NewProjectWizard() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => generateBehavior(true)}
+                  onClick={() => {
+                    behaviorDirtyRef.current = false;
+                    generateBehavior();
+                  }}
                   disabled={behaviorLoading}
                   className="gap-2"
                 >
@@ -377,6 +379,7 @@ export default function NewProjectWizard() {
                 value={behaviorPrompt}
                 disabled={behaviorLoading}
                 onChange={(e) => {
+                  behaviorDirtyRef.current = true;
                   setBehaviorPrompt(e.target.value);
                   if (behaviorSource === 'error') setBehaviorSource(null);
                 }}
