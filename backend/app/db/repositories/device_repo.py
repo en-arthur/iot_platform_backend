@@ -233,7 +233,8 @@ class DeviceRepository:
                 detail=(
                     f"MQTT broker unavailable: command '{req.command}' was not delivered "
                     f"to device '{device_id}'. Check MQTT_BROKER_HOST / MQTT_USE_TLS / "
-                    f"MQTT_ADMIN_* credentials."
+                    f"MQTT_ADMIN_* credentials. Cause: "
+                    f"{mqtt_service.last_error or 'unknown'}"
                 ),
             )
 

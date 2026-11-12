@@ -22,6 +22,9 @@ class MQTTService:
         self.username: Optional[str] = getattr(settings, "MQTT_ADMIN_USER", None)
         self.password: Optional[str] = getattr(settings, "MQTT_ADMIN_PASSWORD", None)
         self.use_tls: bool = getattr(settings, "MQTT_USE_TLS", False)
+        # Last publish failure (surfaced in the 503 so the cause is visible
+        # without Render log access). Never contains the password.
+        self.last_error: Optional[str] = None
 
     async def publish(self, topic: str, payload: Dict[str, Any]) -> bool:
         """Publish JSON payload to an MQTT topic as the admin user."""
@@ -31,18 +34,22 @@ class MQTTService:
 
             if self.use_tls:
                 # Production (Render): connect over WSS.
-                # Render proxies HTTPS/WSS on port 443 â†’ internal WebSocket listener.
+                # Render proxies HTTPS/WSS on port 443 → internal WebSocket listener.
+                # transport="websockets" is required: websocket_path alone does not
+                # switch paho off raw TCP, which just hangs against the HTTPS proxy.
                 async with aiomqtt.Client(
                     hostname=self.host,
                     port=443,
                     username=self.username,
                     password=self.password,
+                    transport="websockets",
                     tls_params=aiomqtt.TLSParameters(),
-                    websocket_path="/",
-                    timeout=10,
+                    websocket_path="/mqtt",
+                    timeout=15,
                 ) as client:
                     await client.publish(topic, payload=message_bytes, qos=1)
                     logger.info(f"Published MQTT/WSS message to '{topic}'")
+                    self.last_error = None
                     return True
             else:
                 # Local development: raw TCP MQTT
@@ -51,13 +58,15 @@ class MQTTService:
                     port=self.port,
                     username=self.username,
                     password=self.password,
-                    timeout=10,
+                    timeout=15,
                 ) as client:
                     await client.publish(topic, payload=message_bytes, qos=1)
                     logger.info(f"Published MQTT message to '{topic}'")
+                    self.last_error = None
                     return True
 
         except Exception as e:
+            self.last_error = f"{type(e).__name__}: {e}"
             logger.error(f"MQTT publish to '{topic}' failed: {e}")
             return False
 
