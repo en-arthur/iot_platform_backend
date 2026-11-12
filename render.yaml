@@ -13,7 +13,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: SUPABASE_URL
-        value: https://your-project-ref.supabase.co
+        value: https://dnahuzcayyutqbfhnwhv.supabase.co
       - key: SUPABASE_ANON_KEY
         value: placeholder-supabase-anon-key
       - key: SUPABASE_SERVICE_ROLE_KEY
