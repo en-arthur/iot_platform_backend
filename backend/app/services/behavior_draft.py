@@ -70,13 +70,13 @@ def _template_behavior(payload: BehaviorDraftRequest) -> str:
 
     return (
         f"{intro}. Publish each reading as a JSON telemetry frame over MQTT to "
-        "devices/{device_id}/telemetry and keep the radio off between cycles, "
+        "devices/<device_id>/telemetry and keep the radio off between cycles, "
         "entering deep sleep when the device is battery powered. Apply hysteresis "
         "to actuation: energise the output when the measured value crosses the "
         "configured upper threshold and release it once the value falls back "
-        "below the lower threshold. Publish an alert to devices/{device_id}/alerts "
+        "below the lower threshold. Publish an alert to devices/<device_id>/alerts "
         "when a threshold stays exceeded for more than five minutes, and expose "
-        "the declared commands on devices/{device_id}/cmd with an acknowledgement "
+        "the declared commands on devices/<device_id>/cmd with an acknowledgement "
         "within two seconds. If a sensor read fails, log the fault locally, retry "
         "twice, then reconnect to the broker with exponential backoff."
     )
