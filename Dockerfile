@@ -6,26 +6,15 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PORT=8000
 
-# Application configuration placeholders (override these in Render dashboard)
+# Non-secret defaults only. Secrets MUST come from the platform env
+# (Render dashboard / render.yaml) — baking placeholder credentials into the
+# image previously made HS256 JWT verification "available" with a known secret.
 ENV ENVIRONMENT="production" \
     PROJECT_NAME="DeviceStack Technologies API" \
-    SUPABASE_URL="https://your-project-ref.supabase.co" \
-    SUPABASE_ANON_KEY="placeholder-supabase-anon-key" \
-    SUPABASE_SERVICE_ROLE_KEY="placeholder-supabase-service-role-key" \
-    SUPABASE_JWT_SECRET="placeholder-supabase-jwt-secret" \
-    FRONTEND_URL="https://your-frontend-domain.com" \
-    BACKEND_CORS_ORIGINS='["https://your-frontend-domain.com"]' \
-    MQTT_BROKER_HOST="broker.example.com" \
-    MQTT_BROKER_PORT="1883" \
-    MQTT_ADMIN_USER="admin" \
-    MQTT_ADMIN_PASSWORD="placeholder-mqtt-password" \
-    MQTT_USE_TLS="false" \
     AI_MODEL_PROVIDER="gemini" \
     AI_MODEL_NAME="gemini-2.5-flash" \
-    GEMINI_API_KEY="placeholder-gemini-api-key" \
     SANDBOX_PROVIDER="e2b" \
-    E2B_API_KEY="placeholder-e2b-api-key" \
-    WORKERSCRAFT_URL="https://your-workerscraft-service.onrender.com"
+    MQTT_BROKER_PORT="1883"
 
 WORKDIR /app
 

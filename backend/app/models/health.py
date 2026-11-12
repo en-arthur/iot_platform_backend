@@ -13,6 +13,8 @@ class HealthResponse(BaseModel):
     commit: str = "unknown"
     # "jwks" (asymmetric Supabase keys), "hs256" (legacy secret) or "none".
     jwt_verification: str = "unknown"
+    # Host the backend is configured to trust for JWTs (no keys/secrets exposed).
+    supabase_host: str = "unset"
 
     components: Dict[str, str] = Field(
         default_factory=lambda: {

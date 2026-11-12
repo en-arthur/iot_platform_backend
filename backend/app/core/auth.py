@@ -41,11 +41,19 @@ if _jwks_url:
 
 
 
+def _usable_jwt_secret() -> Optional[str]:
+    """The legacy HS256 secret, ignoring the placeholder baked into older images."""
+    secret = settings.SUPABASE_JWT_SECRET
+    if not secret or secret.startswith("placeholder"):
+        return None
+    return secret
+
+
 def jwt_verification_mode() -> str:
     """Which JWT verification path is active (surfaced in /health)."""
     if _jwks_client:
         return "jwks"
-    if settings.SUPABASE_JWT_SECRET:
+    if _usable_jwt_secret():
         return "hs256"
     return "none"
 
@@ -78,10 +86,11 @@ def decode_supabase_jwt(token: str) -> dict:
                 logger.warning(f"JWKS verification failed, trying HS256 secret: {e}")
 
         # 3. Symmetric HS256 Verification via Supabase JWT Secret (legacy projects)
-        if settings.SUPABASE_JWT_SECRET:
+        jwt_secret = _usable_jwt_secret()
+        if jwt_secret:
             payload = jwt.decode(
                 token,
-                settings.SUPABASE_JWT_SECRET,
+                jwt_secret,
                 algorithms=["HS256"],
                 audience="authenticated",
                 options={"verify_exp": True},
