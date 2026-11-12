@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, Optional
@@ -6,7 +7,9 @@ from app.core.exceptions import NotFoundError
 from app.db.repositories.files_repo import files_repo
 from app.db.repositories.project_repo import project_repo
 from app.models.verification import VerificationRun
-from app.sandbox.e2b_runner import E2BSandboxRunner
+from app.sandbox.e2b_runner import E2BSandboxRunner, PROJECT_DIR
+
+logger = logging.getLogger(__name__)
 
 
 class VerificationRepository:
@@ -28,7 +31,7 @@ class VerificationRepository:
             version_number=1,
             status="passed",
             sandbox_provider="e2b",
-            logs="[SUCCESS] PlatformIO compiled firmware.bin (424 KB flash, 32 KB RAM). Ready for browser flashing.",
+            logs="[DEMO] PlatformIO compiled firmware.bin (424 KB flash, 32 KB RAM). Ready for browser flashing.",
             firmware_binary_url=f"/api/v1/runs/{demo_run_id}/firmware",
             selftest_results={"wifi_connected": True, "bme280_ack": True, "fan_relay_switched": True},
         )
@@ -44,7 +47,10 @@ class VerificationRepository:
             version_number=project.version,
             status="running",
             sandbox_provider="e2b",
-            logs="Starting ephemeral E2B verification microVM with network blocked...\n",
+            logs=(
+                "Starting ephemeral E2B microVM with network blocked "
+                f"(template: {self.runner.template})...\n"
+            ),
             firmware_binary_url=f"/api/v1/runs/{run_id}/firmware",
         )
         self._runs[run_id] = run_obj
@@ -74,24 +80,50 @@ class VerificationRepository:
 
         file_map = {f.path: f.content for f in files_list}
 
-        # 2. Spin up ephemeral E2B sandbox with network blocked
-        sandbox_id = await self.runner.create(
-            snapshot="esp32-arduino-toolchain",
-            labels={"project_id": run_obj.project_id, "run_id": run_id},
-            network_blocked=True,
-        )
+        # Generated firmware lives in firmware/ (platformio.ini next to src/).
+        project_dir = "firmware" if any(p.startswith("firmware/") for p in file_map) else "."
+        binary_candidates = [
+            f"{PROJECT_DIR}/{project_dir}/.pio/build/esp32s3/firmware.bin",
+        ]
+
+        # 2. Spin up a fresh E2B sandbox from the shared ESP32 template.
+        try:
+            sandbox_id = await self.runner.create(
+                labels={"project_id": run_obj.project_id, "run_id": run_id},
+                network_blocked=True,
+            )
+        except Exception as exc:
+            run_obj.status = "failed"
+            run_obj.logs += f"[SANDBOX ERROR] {exc}\n"
+            run_obj.completed_at = datetime.now(timezone.utc).isoformat()
+            return run_obj
 
         try:
             # 3. Upload source code
             await self.runner.upload_files(sandbox_id, file_map)
 
             # 4. Compile in sandbox
-            exit_code, stdout, stderr = await self.runner.run_command(sandbox_id, "platformio run")
+            exit_code, stdout, stderr = await self.runner.run_command(
+                sandbox_id, f"pio run -d {project_dir}"
+            )
             run_obj.logs += stdout + ("\n" + stderr if stderr else "")
 
             if exit_code == 0:
                 # 5. Extract compiled binary
-                binary = await self.runner.download_file(sandbox_id, ".pio/build/esp32s3/firmware.bin")
+                binary = None
+                last_error: Optional[Exception] = None
+                for candidate in binary_candidates:
+                    try:
+                        binary = await self.runner.download_file(sandbox_id, candidate)
+                        break
+                    except Exception as exc:  # try the next known location
+                        last_error = exc
+                if binary is None:
+                    run_obj.status = "failed"
+                    run_obj.logs += f"\n[ARTIFACT ERROR] firmware.bin not found: {last_error}\n"
+                    run_obj.completed_at = datetime.now(timezone.utc).isoformat()
+                    return run_obj
+
                 self._binaries[run_id] = binary
                 run_obj.status = "passed"
                 run_obj.completed_at = datetime.now(timezone.utc).isoformat()
@@ -101,6 +133,12 @@ class VerificationRepository:
                 run_obj.completed_at = datetime.now(timezone.utc).isoformat()
                 # 6. Trigger Debug Agent to synthesize spec fix proposal
                 DebugAgent.analyze_compiler_error(run_obj.project_id, stderr, stdout)
+
+        except Exception as exc:
+            run_obj.status = "failed"
+            run_obj.completed_at = datetime.now(timezone.utc).isoformat()
+            run_obj.logs += f"\n[VERIFICATION ERROR] {type(exc).__name__}: {exc}\n"
+            logger.exception("Verification run %s failed", run_id)
 
         finally:
             # Ephemeral destruction

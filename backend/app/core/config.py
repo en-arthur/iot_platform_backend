@@ -87,6 +87,10 @@ class Settings(BaseSettings):
     # Sandbox Runner Provider (Exclusively E2B)
     SANDBOX_PROVIDER: str = "e2b"
     E2B_API_KEY: Optional[str] = None
+    # Shared template (built once) containing PlatformIO + the ESP32 toolchain.
+    E2B_TEMPLATE: str = "esp32-pio"
+    E2B_TIMEOUT_SECONDS: int = 900
+    E2B_COMMAND_TIMEOUT_SECONDS: int = 900
 
     # WorkersCraft Cloud Service
     WORKERSCRAFT_URL: str = "http://localhost:8001"

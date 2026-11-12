@@ -46,6 +46,8 @@ services:
         value: e2b
       - key: E2B_API_KEY
         sync: false
+      - key: E2B_TEMPLATE
+        value: esp32-pio
       - key: WORKERSCRAFT_URL
         value: https://devicestack-cloud.onrender.com
 

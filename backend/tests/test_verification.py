@@ -2,6 +2,19 @@ import pytest
 from app.agents.debug_agent import DebugAgent
 from app.db.repositories.proposal_repo import proposal_repo
 from app.db.repositories.verification_repo import verification_repo
+from app.sandbox.e2b_runner import E2BSandboxRunner
+
+
+@pytest.mark.asyncio
+async def test_sandbox_refuses_to_run_without_e2b_key(monkeypatch):
+    """A missing E2B key must fail loudly, never produce a fake pass."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "E2B_API_KEY", None)
+    runner = E2BSandboxRunner(template="esp32-pio")
+    assert runner.configured is False
+    with pytest.raises(RuntimeError, match="E2B is not configured"):
+        await runner.create()
 
 
 def test_get_verification_run_demo(client, create_test_token):
