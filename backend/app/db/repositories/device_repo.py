@@ -130,7 +130,8 @@ class DeviceRepository:
             name=req.name,
             secret=secret,          # DeviceStack API secret — shown ONLY ONCE
             mqtt_broker_host=settings.MQTT_BROKER_HOST,
-            mqtt_broker_port=settings.MQTT_BROKER_PORT,
+            # Public TLS endpoint is always 443 on Render.
+            mqtt_broker_port=443 if settings.MQTT_USE_TLS else settings.MQTT_BROKER_PORT,
             telemetry_topic=f"devices/{device_id}/telemetry",
             command_topic=f"devices/{device_id}/cmd",
             mqtt_username=mqtt_username,   # Per-device MQTT username — shown ONLY ONCE

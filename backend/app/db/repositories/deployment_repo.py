@@ -31,11 +31,19 @@ class DeploymentRepository:
         # Transition lifecycle to deployed
         project.lifecycle = "deployed"
 
+        # Render exposes the broker publicly only over WSS on 443, regardless of
+        # the internal MQTT_BROKER_PORT.
+        broker_url = (
+            f"wss://{settings.MQTT_BROKER_HOST}:443"
+            if settings.MQTT_USE_TLS
+            else f"mqtt://{settings.MQTT_BROKER_HOST}:{settings.MQTT_BROKER_PORT}"
+        )
+
         response = DeploymentResponse(
             deployment_id=deployment_id,
             project_id=project_id,
             status="active",
-            broker_url=f"mqtt://{settings.MQTT_BROKER_HOST}:{settings.MQTT_BROKER_PORT}",
+            broker_url=broker_url,
             cloud_service_app_id=cloud_app_id,
             deployed_at=now_str,
             message="Project deployed successfully. Cloud storage and MQTT ingress are active.",
