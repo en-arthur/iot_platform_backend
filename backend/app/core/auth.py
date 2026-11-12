@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from fastapi import Depends, Header, Request
 import jwt
-from jwt import PyJWKClient, PyJWTError
+from jwt import PyJWKClient, PyJWKClientError, PyJWTError
 
 from app.core.config import settings
 from app.core.exceptions import UnauthorizedError
@@ -10,13 +10,35 @@ from app.models.auth import AuthUser
 
 logger = logging.getLogger(__name__)
 
-# Initialize JWKS client if URL is configured (for RS256 Supabase keys)
+# Supabase projects created after 2025 sign access tokens with asymmetric keys
+# (ES256 by default, RS256 for legacy projects). Newer projects have no shared
+# HS256 secret, so JWKS verification is the only way to validate their tokens.
+_JWKS_PLACEHOLDERS = ("your-project-ref", "example.supabase.co")
+_JWT_ALGORITHMS = ["RS256", "RS384", "RS512", "ES256", "ES384", "ES512"]
+
+
+def _resolve_jwks_url() -> Optional[str]:
+    """Explicit SUPABASE_JWKS_URL wins; otherwise derive it from SUPABASE_URL."""
+    if settings.SUPABASE_JWKS_URL:
+        return settings.SUPABASE_JWKS_URL
+    url = (settings.SUPABASE_URL or "").rstrip("/")
+    if not url.startswith("http"):
+        return None
+    if any(placeholder in url for placeholder in _JWKS_PLACEHOLDERS):
+        return None
+    return f"{url}/auth/v1/.well-known/jwks.json"
+
+
+# Initialize JWKS client when a real Supabase project is configured.
 _jwks_client: Optional[PyJWKClient] = None
-if settings.SUPABASE_JWKS_URL:
+_jwks_url = _resolve_jwks_url()
+if _jwks_url:
     try:
-        _jwks_client = PyJWKClient(settings.SUPABASE_JWKS_URL)
+        _jwks_client = PyJWKClient(_jwks_url)
+        logger.info(f"Supabase JWT verification via JWKS: {_jwks_url}")
     except Exception as e:
         logger.warning(f"Could not initialize JWKS client: {e}")
+
 
 
 def decode_supabase_jwt(token: str) -> dict:
@@ -31,19 +53,22 @@ def decode_supabase_jwt(token: str) -> dict:
                 "role": "authenticated",
             }
 
-        # 2. Asymmetric RS256 Verification via Supabase JWKS
+        # 2. Asymmetric verification via Supabase JWKS (ES256 / RS256).
         if _jwks_client:
-            signing_key = _jwks_client.get_signing_key_from_jwt(token)
-            payload = jwt.decode(
-                token,
-                signing_key.key,
-                algorithms=["RS256"],
-                audience="authenticated",
-                options={"verify_exp": True},
-            )
-            return payload
+            try:
+                signing_key = _jwks_client.get_signing_key_from_jwt(token)
+                return jwt.decode(
+                    token,
+                    signing_key.key,
+                    algorithms=_JWT_ALGORITHMS,
+                    audience="authenticated",
+                    options={"verify_exp": True},
+                )
+            except PyJWKClientError as e:
+                # Unknown/rotated key or JWKS unreachable: fall through to HS256.
+                logger.warning(f"JWKS verification failed, trying HS256 secret: {e}")
 
-        # 3. Symmetric HS256 Verification via Supabase JWT Secret
+        # 3. Symmetric HS256 Verification via Supabase JWT Secret (legacy projects)
         if settings.SUPABASE_JWT_SECRET:
             payload = jwt.decode(
                 token,
