@@ -15,6 +15,9 @@ class HealthResponse(BaseModel):
     jwt_verification: str = "unknown"
     # Host the backend is configured to trust for JWTs (no keys/secrets exposed).
     supabase_host: str = "unset"
+    # Resolved JWKS endpoint + last initialisation error (public information).
+    jwks_url: str = "unset"
+    jwks_error: str = ""
 
     components: Dict[str, str] = Field(
         default_factory=lambda: {

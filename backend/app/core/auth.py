@@ -1,5 +1,7 @@
 import logging
-from typing import Optional
+from typing import Optional, Tuple
+from urllib.parse import urlparse
+
 from fastapi import Depends, Header, Request
 import jwt
 from jwt import PyJWKClient, PyJWKClientError, PyJWTError
@@ -13,32 +15,59 @@ logger = logging.getLogger(__name__)
 # Supabase projects created after 2025 sign access tokens with asymmetric keys
 # (ES256 by default, RS256 for legacy projects). Newer projects have no shared
 # HS256 secret, so JWKS verification is the only way to validate their tokens.
-_JWKS_PLACEHOLDERS = ("your-project-ref", "example.supabase.co")
+_JWKS_PLACEHOLDER_HOSTS = ("your-project-ref.supabase.co", "example.supabase.co")
 _JWT_ALGORITHMS = ["RS256", "RS384", "RS512", "ES256", "ES384", "ES512"]
 
 
 def _resolve_jwks_url() -> Optional[str]:
-    """Explicit SUPABASE_JWKS_URL wins; otherwise derive it from SUPABASE_URL."""
-    if settings.SUPABASE_JWKS_URL:
-        return settings.SUPABASE_JWKS_URL
-    url = (settings.SUPABASE_URL or "").rstrip("/")
-    if not url.startswith("http"):
+    """Explicit SUPABASE_JWKS_URL wins; otherwise derive it from SUPABASE_URL.
+
+    The value is normalised first (trimmed, scheme parsed case-insensitively) so
+    copy-pasted env values with stray whitespace or an upper-case scheme still
+    resolve correctly.
+    """
+    explicit = (settings.SUPABASE_JWKS_URL or "").strip()
+    if explicit:
+        parsed = urlparse(explicit)
+        return explicit if parsed.scheme in ("http", "https") and parsed.hostname else None
+
+    raw = (settings.SUPABASE_URL or "").strip().rstrip("/")
+    parsed = urlparse(raw)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
         return None
-    if any(placeholder in url for placeholder in _JWKS_PLACEHOLDERS):
+    if parsed.hostname in _JWKS_PLACEHOLDER_HOSTS:
         return None
-    return f"{url}/auth/v1/.well-known/jwks.json"
+    return f"{parsed.scheme}://{parsed.netloc}/auth/v1/.well-known/jwks.json"
 
 
-# Initialize JWKS client when a real Supabase project is configured.
 _jwks_client: Optional[PyJWKClient] = None
-_jwks_url = _resolve_jwks_url()
-if _jwks_url:
+_jwks_url: Optional[str] = _resolve_jwks_url()
+_jwks_error: Optional[str] = None
+
+
+def _get_jwks_client() -> Optional[PyJWKClient]:
+    """Lazily build the JWKS client so one transient failure isn't permanent."""
+    global _jwks_client, _jwks_url, _jwks_error
+    if _jwks_client is not None:
+        return _jwks_client
+    _jwks_url = _resolve_jwks_url()
+    if not _jwks_url:
+        _jwks_error = "SUPABASE_URL is not set or is not a valid http(s) URL"
+        return None
     try:
         _jwks_client = PyJWKClient(_jwks_url)
+        _jwks_error = None
         logger.info(f"Supabase JWT verification via JWKS: {_jwks_url}")
-    except Exception as e:
+    except Exception as e:  # pragma: no cover - environment dependent
+        _jwks_error = f"{type(e).__name__}: {e}"
         logger.warning(f"Could not initialize JWKS client: {e}")
+    return _jwks_client
 
+
+def jwks_diagnostic() -> Tuple[Optional[str], Optional[str]]:
+    """(resolved JWKS URL, last error) for the /health endpoint."""
+    _get_jwks_client()
+    return _jwks_url, _jwks_error
 
 
 def _usable_jwt_secret() -> Optional[str]:
@@ -51,7 +80,7 @@ def _usable_jwt_secret() -> Optional[str]:
 
 def jwt_verification_mode() -> str:
     """Which JWT verification path is active (surfaced in /health)."""
-    if _jwks_client:
+    if _get_jwks_client():
         return "jwks"
     if _usable_jwt_secret():
         return "hs256"
@@ -71,9 +100,10 @@ def decode_supabase_jwt(token: str) -> dict:
             }
 
         # 2. Asymmetric verification via Supabase JWKS (ES256 / RS256).
-        if _jwks_client:
+        jwks_client = _get_jwks_client()
+        if jwks_client:
             try:
-                signing_key = _jwks_client.get_signing_key_from_jwt(token)
+                signing_key = jwks_client.get_signing_key_from_jwt(token)
                 return jwt.decode(
                     token,
                     signing_key.key,
