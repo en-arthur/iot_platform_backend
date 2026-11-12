@@ -3,9 +3,16 @@ from fastapi import APIRouter, Depends, status
 from app.core.auth import get_current_user
 from app.db.repositories.project_repo import project_repo
 from app.models.auth import AuthUser
-from app.models.project import Project, ProjectConfirmResponse, ProjectCreate
+from app.models.project import (
+    BehaviorDraftRequest,
+    BehaviorDraftResponse,
+    Project,
+    ProjectConfirmResponse,
+    ProjectCreate,
+)
 from app.models.spec import FieldPatchItem, SpecDiff, SpecVersionSummary
 from app.models.validation import ValidationIssue
+from app.services.behavior_draft import generate_behavior_draft
 
 router = APIRouter(prefix="/projects", tags=["Projects & Spec Engine"])
 
@@ -25,6 +32,20 @@ async def list_projects(
 ) -> List[Project]:
     """Retrieve all projects belonging to the authenticated user."""
     return project_repo.list_projects(user_id=current_user.id)
+
+
+@router.post("/behavior-draft", response_model=BehaviorDraftResponse)
+async def draft_behavior(
+    payload: BehaviorDraftRequest,
+    current_user: AuthUser = Depends(get_current_user),
+) -> BehaviorDraftResponse:
+    """Draft an editable natural-language behavior spec from the wizard context.
+
+    Uses Gemini when configured and falls back to a deterministic template, so the
+    wizard always receives text the user can refine before submitting.
+    """
+    text, source = await generate_behavior_draft(payload)
+    return BehaviorDraftResponse(behavior=text, source=source)
 
 
 @router.get("/{project_id}", response_model=Project)

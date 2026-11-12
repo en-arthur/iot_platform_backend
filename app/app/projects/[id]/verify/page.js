@@ -115,7 +115,7 @@ export default function VerificationPage({ params }) {
   };
 
   return (
-    <div className="container max-w-7xl p-6 md:p-8 space-y-8">
+    <div className="container max-w-7xl p-6 md:p-8 space-y-8 h-full overflow-y-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

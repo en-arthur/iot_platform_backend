@@ -138,3 +138,32 @@ def test_validate_spec_endpoint_and_pin_conflict_gate(client):
     assert confirm_res.status_code == 409
     assert "error-level issue(s) require resolution" in confirm_res.json()["message"]
 
+
+
+def test_behavior_draft_falls_back_to_template(client, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", None)
+    headers = {"Authorization": "Bearer mock-user-alice"}
+    payload = {
+        "name": "Greenhouse Monitor",
+        "goal": "Keep soil moisture between 35% and 60% and alert on dry spells.",
+        "board_id": "esp32-s3-devkitc-1",
+        "peripherals": ["capacitive_soil_moisture", "sht31"],
+        "custom_peripherals": ["solenoid valve"],
+        "interface_type": "web app",
+    }
+    res = client.post("/api/v1/projects/behavior-draft", json=payload, headers=headers)
+    assert res.status_code == 200
+    body = res.json()
+    assert body["source"] == "template"
+    text = body["behavior"]
+    assert "esp32-s3-devkitc-1" in text
+    assert "capacitive_soil_moisture" in text
+    assert "solenoid valve" in text
+    assert "Keep soil moisture between 35% and 60%" in text
+
+
+def test_behavior_draft_requires_auth(client):
+    res = client.post("/api/v1/projects/behavior-draft", json={"name": "x"})
+    assert res.status_code == 401

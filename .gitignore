@@ -35,3 +35,7 @@ next-env.d.ts
 # local secrets / QA
 backend/.e2b_key
 backend/.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv*/

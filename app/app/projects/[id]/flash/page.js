@@ -118,7 +118,7 @@ export default function FlashPage({ params }) {
   };
 
   return (
-    <div className="container max-w-6xl p-6 md:p-8 space-y-8">
+    <div className="container max-w-6xl p-6 md:p-8 space-y-8 h-full overflow-y-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">

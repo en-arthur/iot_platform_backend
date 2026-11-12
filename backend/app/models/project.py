@@ -35,6 +35,22 @@ class Project(ProjectBase):
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+class BehaviorDraftRequest(BaseModel):
+    """Context from wizard step 1 used to draft the behavior specification."""
+
+    name: Optional[str] = Field(default=None, max_length=120)
+    goal: Optional[str] = Field(default=None, max_length=4000)
+    board_id: Optional[str] = None
+    peripherals: List[str] = Field(default_factory=list)
+    custom_peripherals: List[str] = Field(default_factory=list)
+    interface_type: Optional[str] = None
+
+
+class BehaviorDraftResponse(BaseModel):
+    behavior: str
+    source: Literal["ai", "template"] = "template"
+
+
 class ProjectConfirmResponse(BaseModel):
     success: bool = True
     lifecycle: ProjectLifecycle = "confirmed"

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import {
   Loader2,
   Sparkles,
   Plus,
+  RefreshCw,
 } from 'lucide-react';
 
 const STEPS = [
@@ -38,9 +39,10 @@ export default function NewProjectWizard() {
   const [goal, setGoal] = useState('');
   const [selectedBoard, setSelectedBoard] = useState('esp32-s3-devkitc-1');
   const [selectedPeripherals, setSelectedPeripherals] = useState(['bme280', 'relay-module-5v']);
-  const [behaviorPrompt, setBehaviorPrompt] = useState(
-    'Read temperature and humidity every 60 seconds. Put the MCU in deep sleep between cycles. If temperature exceeds 30°C, energize the fan relay. If it exceeds 35°C for 10 minutes, dispatch an urgent cloud alert over MQTT.'
-  );
+  const [behaviorPrompt, setBehaviorPrompt] = useState('');
+  const [behaviorLoading, setBehaviorLoading] = useState(false);
+  const [behaviorSource, setBehaviorSource] = useState(null); // 'ai' | 'template' | 'error'
+  const behaviorRequestedRef = useRef(false);
   const [interfaceType, setInterfaceType] = useState('web app'); // 'dashboard' | 'web app'
   const [isCustomPeripheralSelected, setIsCustomPeripheralSelected] = useState(false);
   const [customPeripheralsText, setCustomPeripheralsText] = useState('');
@@ -64,20 +66,67 @@ export default function NewProjectWizard() {
     );
   };
 
+  const getCustomPeripherals = () =>
+    isCustomPeripheralSelected && customPeripheralsText.trim()
+      ? customPeripheralsText.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+
+  const getSelectedPeripheralNames = () => {
+    const names = peripherals
+      .filter((p) => selectedPeripherals.includes(p.id))
+      .map((p) => p.name);
+    return names.length > 0 ? names : selectedPeripherals;
+  };
+
+  // Draft the behavior spec from the Step 1 goal + Step 2 hardware.
+  const generateBehavior = async (force = false) => {
+    if (behaviorLoading) return;
+    if (!force && behaviorPrompt.trim()) return;
+
+    setBehaviorLoading(true);
+    try {
+      const draft = await api.generateBehaviorDraft({
+        name: name || 'Untitled IoT device',
+        goal,
+        board_id: selectedBoard,
+        peripherals: getSelectedPeripheralNames(),
+        custom_peripherals: getCustomPeripherals(),
+        interface_type: interfaceType,
+      });
+      setBehaviorPrompt(draft?.behavior || '');
+      setBehaviorSource(draft?.source === 'ai' ? 'ai' : 'template');
+    } catch (err) {
+      setBehaviorSource('error');
+    } finally {
+      setBehaviorLoading(false);
+    }
+  };
+
+  // Auto-generate once the user reaches the Behavior step, using their Step 1/2 answers.
+  useEffect(() => {
+    if (currentStep !== 3 || behaviorRequestedRef.current) return;
+    behaviorRequestedRef.current = true;
+    generateBehavior();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep]);
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const customList = isCustomPeripheralSelected && customPeripheralsText.trim()
-        ? customPeripheralsText.split(',').map((s) => s.trim()).filter(Boolean)
-        : [];
+      const customList = getCustomPeripherals();
 
       const peripheralsNote = customList.length > 0
         ? ` Additional custom components: ${customList.join(', ')}.`
         : '';
 
+      const description = [
+        goal.trim(),
+        behaviorPrompt.trim() ? `Behavior Specification:\n${behaviorPrompt.trim()}` : '',
+      ].filter(Boolean).join('\n\n') + peripheralsNote;
+
       const project = await api.createProject({
         name: name || 'Smart Greenhouse Node',
-        description: (goal || behaviorPrompt) + peripheralsNote,
+        description,
         board_id: selectedBoard,
         interface_type: interfaceType,
         custom_peripherals: customList,
@@ -298,16 +347,58 @@ export default function NewProjectWizard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Behavior Specification
-              </label>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label
+                  htmlFor="behavior-spec"
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  Behavior Specification
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generateBehavior(true)}
+                  disabled={behaviorLoading}
+                  className="gap-2"
+                >
+                  {behaviorLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  <span>{behaviorLoading ? 'Generating...' : 'Regenerate'}</span>
+                </Button>
+              </div>
               <Textarea
-                rows={6}
+                id="behavior-spec"
+                rows={9}
                 value={behaviorPrompt}
-                onChange={(e) => setBehaviorPrompt(e.target.value)}
-                placeholder="Describe sampling cycles, sleep modes, threshold triggers, and commands..."
+                disabled={behaviorLoading}
+                onChange={(e) => {
+                  setBehaviorPrompt(e.target.value);
+                  if (behaviorSource === 'error') setBehaviorSource(null);
+                }}
+                placeholder={
+                  behaviorLoading
+                    ? 'Drafting behavior specification from your goal and hardware...'
+                    : 'Describe sampling cycles, sleep modes, threshold triggers, and commands...'
+                }
               />
+              <p className="text-[11px] text-muted-foreground">
+                {behaviorSource === 'ai' &&
+                  'Drafted by AI from your Step 1 goal and Step 2 hardware. Edit anything you want before submitting.'}
+                {behaviorSource === 'template' &&
+                  'Draft generated from your goal and hardware (AI unavailable). Edit it freely before submitting.'}
+                {behaviorSource === 'error' &&
+                  'Automatic draft failed. Write the behavior yourself or press Regenerate.'}
+                {!behaviorSource &&
+                  !behaviorLoading &&
+                  'AI drafts this from your Step 1 goal and Step 2 hardware. Every word stays editable.'}
+                {behaviorLoading &&
+                  'Reading your goal and hardware to draft the behavior rules...'}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -391,7 +482,7 @@ export default function NewProjectWizard() {
         ) : (
           <Button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || behaviorLoading}
             className="gap-2 shadow-lg px-6"
           >
             {submitting ? (
@@ -399,7 +490,7 @@ export default function NewProjectWizard() {
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                <span>Synthesize Spec & Workspace</span>
+                <span>Submit</span>
               </>
             )}
           </Button>
