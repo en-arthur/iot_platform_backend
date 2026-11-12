@@ -41,6 +41,15 @@ if _jwks_url:
 
 
 
+def jwt_verification_mode() -> str:
+    """Which JWT verification path is active (surfaced in /health)."""
+    if _jwks_client:
+        return "jwks"
+    if settings.SUPABASE_JWT_SECRET:
+        return "hs256"
+    return "none"
+
+
 def decode_supabase_jwt(token: str) -> dict:
     """Verifies Supabase JWT signature, expiry, and returns payload."""
     try:

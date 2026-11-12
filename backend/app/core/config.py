@@ -1,4 +1,6 @@
 from typing import Annotated, List, Optional
+import os
+
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
@@ -8,6 +10,9 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
+    # Render injects RENDER_GIT_COMMIT; surface it in /health so the deployed
+    # revision can be checked from outside.
+    GIT_COMMIT: str = (os.getenv("RENDER_GIT_COMMIT") or "unknown")[:7]
 
     # Supabase Auth & Database
     SUPABASE_URL: str = "https://example.supabase.co"
