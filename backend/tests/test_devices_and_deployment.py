@@ -49,8 +49,15 @@ def test_dispatch_undeclared_command_rejected(client, create_test_token):
     assert "not declared" in response.text.lower()
 
 
-def test_dispatch_declared_command_success(client, create_test_token):
+def test_dispatch_declared_command_success(client, create_test_token, monkeypatch):
     token = create_test_token()
+
+    async def fake_publish(topic, payload):
+        return True
+
+    monkeypatch.setattr(
+        "app.db.repositories.device_repo.mqtt_service.publish", fake_publish
+    )
     payload = {
         "command": "TRIGGER_FAN_FORCE_ON",
         "params": {"speed": 100},

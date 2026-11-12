@@ -91,9 +91,13 @@ export default function LiveInterfacePage({ params }) {
   };
 
   const handleSendCommand = async (cmd) => {
+    const targetDevice = devices[0]?.id;
+    if (!targetDevice) {
+      setCommandStatus('No device provisioned yet. Click "Provision New Device" first.');
+      return;
+    }
     setCommandStatus(`Sending command ${cmd}...`);
     try {
-      const targetDevice = devices[0]?.id || 'dev-node-alpha';
       const res = await api.sendDeviceCommand(targetDevice, cmd);
       setCommandStatus(`Executed "${cmd}" successfully at ${new Date().toLocaleTimeString()}!`);
       setTimeout(() => setCommandStatus(''), 4000);

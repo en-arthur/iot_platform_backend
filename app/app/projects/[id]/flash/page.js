@@ -104,8 +104,16 @@ export default function FlashPage({ params }) {
       setFlashStatus('Hardware verified on real silicon!');
 
       // Submit test results to backend
-      await api.submitSelfTestResults('run-gh-test-901', result);
-      addLog('Results submitted to backend verification record.');
+      const runId =
+        typeof window !== 'undefined'
+          ? window.localStorage.getItem(`iot-verify-run-${projectId}`)
+          : null;
+      if (runId) {
+        await api.submitSelfTestResults(runId, result);
+        addLog('Results submitted to backend verification record.');
+      } else {
+        addLog('No verification run found — run the verification pipeline first to persist results.');
+      }
     }, 1200);
   };
 

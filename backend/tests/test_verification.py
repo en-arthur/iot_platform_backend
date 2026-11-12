@@ -101,14 +101,19 @@ def test_submit_selftest_failure_triggers_debug_agent(client, create_test_token)
 
     # Debug agent should have created an automated spec proposal
     proposals = proposal_repo.list_proposals("proj-greenhouse-01")
-    hardware_proposals = [p for p in proposals if "bme280" in p.title.lower() or "hardware" in p.title.lower()]
+    hardware_proposals = [
+        p for p in proposals
+        if "bme280" in p.summary.lower() or "hardware" in p.summary.lower()
+    ]
     assert len(hardware_proposals) > 0
 
 
 @pytest.mark.asyncio
 async def test_debug_agent_compiler_error_analysis():
     stderr_sample = "error: 'D4' was not declared in this scope; did you mean 'GPIO4'?"
-    proposal = DebugAgent.analyze_compiler_error("proj-greenhouse-01", stderr_sample)
+    proposal = DebugAgent.analyze_compiler_error(
+        "proj-greenhouse-01", stderr_sample, ""
+    )
     assert proposal is not None
-    assert "compiler" in proposal.title.lower() or "fix" in proposal.title.lower()
-    assert len(proposal.suggested_changes) > 0
+    assert "debug agent" in proposal.summary.lower()
+    assert len(proposal.changes) > 0

@@ -1,6 +1,6 @@
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from pydantic import AnyHttpUrl, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -18,13 +18,28 @@ class Settings(BaseSettings):
 
     # CORS & Frontend Origins
     FRONTEND_URL: str = "http://localhost:3000"
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    # NoDecode: accept both JSON arrays and comma-separated strings from the env.
+    # Without it, pydantic-settings JSON-decodes List[str] before validators run.
+    BACKEND_CORS_ORIGINS: Annotated[List[str], NoDecode] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",") if i.strip()]
-        elif isinstance(v, list):
+    def assemble_cors_origins(cls, v):
+        if isinstance(v, str):
+            value = v.strip()
+            if not value:
+                return []
+            if value.startswith("["):
+                import json
+
+                try:
+                    return json.loads(value)
+                except json.JSONDecodeError:
+                    return [i.strip() for i in value.strip("[]").split(",") if i.strip()]
+            return [i.strip() for i in value.split(",") if i.strip()]
+        if isinstance(v, list):
             return v
         return ["http://localhost:3000"]
 

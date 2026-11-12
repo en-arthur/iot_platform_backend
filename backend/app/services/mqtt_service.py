@@ -11,7 +11,7 @@ class MQTTService:
     
     When MQTT_USE_TLS=true (production/Render), connects over WSS (WebSocket Secure)
     to the Mosquitto broker's public URL on port 443, since Render only exposes
-    services via HTTPS/WSS — not raw TCP.
+    services via HTTPS/WSS â€” not raw TCP.
 
     When MQTT_USE_TLS=false (local development), connects directly via raw MQTT TCP.
     """
@@ -31,7 +31,7 @@ class MQTTService:
 
             if self.use_tls:
                 # Production (Render): connect over WSS.
-                # Render proxies HTTPS/WSS on port 443 → internal WebSocket listener.
+                # Render proxies HTTPS/WSS on port 443 â†’ internal WebSocket listener.
                 async with aiomqtt.Client(
                     hostname=self.host,
                     port=443,
@@ -39,7 +39,7 @@ class MQTTService:
                     password=self.password,
                     tls_params=aiomqtt.TLSParameters(),
                     websocket_path="/",
-                    timeout=5,
+                    timeout=10,
                 ) as client:
                     await client.publish(topic, payload=message_bytes, qos=1)
                     logger.info(f"Published MQTT/WSS message to '{topic}'")
@@ -51,15 +51,15 @@ class MQTTService:
                     port=self.port,
                     username=self.username,
                     password=self.password,
-                    timeout=5,
+                    timeout=10,
                 ) as client:
                     await client.publish(topic, payload=message_bytes, qos=1)
                     logger.info(f"Published MQTT message to '{topic}'")
                     return True
 
         except Exception as e:
-            logger.warning(f"MQTT publish to '{topic}' failed (fallback active): {e}")
-            return True
+            logger.error(f"MQTT publish to '{topic}' failed: {e}")
+            return False
 
 
 mqtt_service = MQTTService()

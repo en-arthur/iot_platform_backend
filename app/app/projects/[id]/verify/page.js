@@ -37,32 +37,71 @@ export default function VerificationPage({ params }) {
   const [triggering, setTriggering] = useState(false);
   const [logs, setLogs] = useState([]);
   const [activeFix, setActiveFix] = useState(null);
+  const [runId, setRunId] = useState(null);
 
-  const fetchRunData = async () => {
+  const storageKey = `iot-verify-run-${projectId}`;
+
+  const applyRun = (data) => {
+    setRun(data);
+    setLogs(data.logs || []);
+    // Check if any failed test has an AI fix proposal
+    const failedWithFix = data.tests?.find((t) => !t.passed && t.fix_proposal);
+    setActiveFix(failedWithFix ? failedWithFix.fix_proposal : null);
+  };
+
+  const fetchRunData = async (id = runId) => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const data = await api.getVerificationRun('run-gh-test-901');
-      setRun(data);
-      setLogs(data.logs || []);
-      // Check if any failed test has an AI fix proposal
-      const failedWithFix = data.tests?.find((t) => !t.passed && t.fix_proposal);
-      if (failedWithFix) {
-        setActiveFix(failedWithFix.fix_proposal);
-      }
+      applyRun(await api.getVerificationRun(id));
+    } catch {
+      setRun(null);
+      setLogs([]);
+      setActiveFix(null);
     } finally {
       setLoading(false);
     }
   };
 
+  // Remember the last triggered run id between visits.
   useEffect(() => {
-    fetchRunData();
-  }, [projectId]);
+    const stored = window.localStorage.getItem(storageKey);
+    setRunId(stored || null);
+    if (!stored) setLoading(false);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (runId) fetchRunData(runId);
+  }, [runId]);
+
+  // Poll while the pipeline is still running so logs/steps appear live.
+  const pollRun = async (id) => {
+    for (let attempt = 0; attempt < 15; attempt += 1) {
+      let data;
+      try {
+        data = await api.getVerificationRun(id);
+      } catch {
+        return;
+      }
+      applyRun(data);
+      if (data.status !== 'running') return;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  };
 
   const handleTriggerVerify = async () => {
     setTriggering(true);
     try {
-      await api.triggerVerify(projectId);
-      await fetchRunData();
+      const res = await api.triggerVerify(projectId);
+      const id = res?.run_id;
+      if (id) {
+        window.localStorage.setItem(storageKey, id);
+        setRunId(id);
+        await pollRun(id);
+      }
     } finally {
       setTriggering(false);
     }

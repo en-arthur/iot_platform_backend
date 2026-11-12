@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from app.core.config import settings
-from app.core.exceptions import ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import APIError, ConflictError, NotFoundError, ValidationError
 from app.db.repositories.project_repo import project_repo
 from app.models.devices import (
     DeviceAlert,
@@ -225,7 +225,16 @@ class DeviceRepository:
             "timestamp": now_str,
         }
 
-        await mqtt_service.publish(topic, payload)
+        published = await mqtt_service.publish(topic, payload)
+        if not published:
+            raise APIError(
+                status_code=503,
+                detail=(
+                    f"MQTT broker unavailable: command '{req.command}' was not delivered "
+                    f"to device '{device_id}'. Check MQTT_BROKER_HOST / MQTT_USE_TLS / "
+                    f"MQTT_ADMIN_* credentials."
+                ),
+            )
 
         # Record audit log
         from app.db.repositories.audit_repo import audit_repo

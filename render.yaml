@@ -1,4 +1,7 @@
 services:
+  # NOTE: the live Render services are configured via the dashboard, not this
+  # blueprint (service names here differ from production). Values below mirror
+  # the working production configuration so the blueprint stays usable.
   - type: web
     name: devicestack-backend
     env: docker
@@ -18,19 +21,21 @@ services:
       - key: SUPABASE_JWT_SECRET
         value: placeholder-supabase-jwt-secret
       - key: FRONTEND_URL
-        value: https://your-frontend-domain.com
+        value: https://iot-platform-sepia.vercel.app
       - key: BACKEND_CORS_ORIGINS
-        value: '["https://your-frontend-domain.com"]'
+        value: '["https://iot-platform-sepia.vercel.app"]'
+      # Render only exposes HTTPS/WSS (443) publicly, so the backend must talk to
+      # the broker over WSS, not raw TCP on 1883.
       - key: MQTT_BROKER_HOST
-        value: devicestack-mosquitto  # will resolve to the mosquitto service
+        value: iot-platform-backend-1.onrender.com
       - key: MQTT_BROKER_PORT
-        value: "1883"
+        value: "1883"  # ignored when MQTT_USE_TLS=true (code uses 443)
       - key: MQTT_ADMIN_USER
         value: admin
       - key: MQTT_ADMIN_PASSWORD
-        sync: false
+        sync: false  # must match the mosquitto service password
       - key: MQTT_USE_TLS
-        value: "false"
+        value: "true"
       - key: AI_MODEL_PROVIDER
         value: gemini
       - key: AI_MODEL_NAME
