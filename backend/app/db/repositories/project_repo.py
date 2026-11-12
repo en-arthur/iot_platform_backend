@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.core.config import settings
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.models.project import Project, ProjectConfirmResponse, ProjectCreate
 from app.models.spec import FieldPatchItem, SpecDiff, SpecVersionSummary
