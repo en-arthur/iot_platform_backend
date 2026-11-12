@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
+from app.core.config import settings
 from app.core.exceptions import NotFoundError
 from app.db.repositories.project_repo import project_repo
 from app.models.proposals import ProposalResolutionResponse, SpecChangeItem, SpecProposal
@@ -14,30 +15,31 @@ class ProposalRepository:
         # In-memory storage for test suites & session cache
         self._proposals: Dict[str, Dict[str, SpecProposal]] = {}
 
-        # Seed pre-existing demo proposal for 'proj-greenhouse-01' (resolve pin conflict)
-        demo_proj = "proj-greenhouse-01"
-        self._proposals[demo_proj] = {
-            "prop-fix-pin-conflict": SpecProposal(
-                proposal_id="prop-fix-pin-conflict",
-                project_id=demo_proj,
-                summary="Remap manual override button from GPIO4 to GPIO10 to eliminate I2C bus collision.",
-                changes=[
-                    SpecChangeItem(
-                        path="peripherals.button_pin",
-                        old="GPIO4",
-                        new="GPIO10",
-                        reason="Resolve pin multiplexing conflict with BME280 I2C SDA on GPIO4.",
-                    ),
-                    SpecChangeItem(
-                        path="metadata.target_deployment_date",
-                        old=None,
-                        new="2026-12-01",
-                        reason="Resolve open blocking deployment date parameter.",
-                    ),
-                ],
-                status="pending",
-            )
-        }
+        # Seed pre-existing demo proposal for 'proj-greenhouse-01' ONLY in development/test
+        if getattr(settings, "ENVIRONMENT", "development") in ("development", "test"):
+            demo_proj = "proj-greenhouse-01"
+            self._proposals[demo_proj] = {
+                "prop-fix-pin-conflict": SpecProposal(
+                    proposal_id="prop-fix-pin-conflict",
+                    project_id=demo_proj,
+                    summary="Remap manual override button from GPIO4 to GPIO10 to eliminate I2C bus collision.",
+                    changes=[
+                        SpecChangeItem(
+                            path="peripherals.button_pin",
+                            old="GPIO4",
+                            new="GPIO10",
+                            reason="Resolve pin multiplexing conflict with BME280 I2C SDA on GPIO4.",
+                        ),
+                        SpecChangeItem(
+                            path="metadata.target_deployment_date",
+                            old=None,
+                            new="2026-12-01",
+                            reason="Resolve open blocking deployment date parameter.",
+                        ),
+                    ],
+                    status="pending",
+                )
+            }
 
     def create_proposal(
         self,

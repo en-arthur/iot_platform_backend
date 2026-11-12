@@ -360,10 +360,6 @@ export default function AppLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-500 border border-emerald-500/20 hidden sm:inline-flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>System Ready</span>
-            </span>
           </div>
         </header>
 

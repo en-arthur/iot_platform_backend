@@ -20,39 +20,40 @@ class ProjectRepository:
         self._specs: Dict[str, Dict[str, Any]] = {}
         self._versions: Dict[str, List[Dict[str, Any]]] = {}
 
-        # Prepopulate demo project for immediate testing/parity with frontend
-        demo_id = "proj-greenhouse-01"
-        demo_proj = Project(
-            id=demo_id,
-            user_id="default-user",
-            name="Solar LoRaWAN Soil Moisture Array",
-            description="Long-range ultra low-power moisture sensing array with capacitive probes, deep sleep cycles, and LoRaWAN/MQTT telemetry.",
-            board_id="esp32-s3-devkitc-1",
-            interface_type="dashboard",
-            lifecycle="draft",
-            version=1,
-            deployed_version="v1.0",
-        )
-        self._projects[demo_id] = demo_proj
-        demo_spec = SpecEngine.create_default_spec(
-            ProjectCreate(
-                name=demo_proj.name,
-                description=demo_proj.description,
-                board_id=demo_proj.board_id,
-                interface_type=demo_proj.interface_type,
+        # Prepopulate demo project ONLY in development/test mode
+        if getattr(settings, "ENVIRONMENT", "development") in ("development", "test"):
+            demo_id = "proj-greenhouse-01"
+            demo_proj = Project(
+                id=demo_id,
+                user_id="default-user",
+                name="Solar LoRaWAN Soil Moisture Array",
+                description="Long-range ultra low-power moisture sensing array with capacitive probes, deep sleep cycles, and LoRaWAN/MQTT telemetry.",
+                board_id="esp32-s3-devkitc-1",
+                interface_type="dashboard",
+                lifecycle="draft",
+                version=1,
+                deployed_version="v1.0",
             )
-        )
-        self._specs[demo_id] = demo_spec
-        self._versions[demo_id] = [
-            {
-                "version_number": 1,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "author": "Hardware Engineer",
-                "summary": "Initial synthesized baseline specification (v1.0).",
-                "lifecycle": "draft",
-                "spec": copy.deepcopy(demo_spec),
-            }
-        ]
+            self._projects[demo_id] = demo_proj
+            demo_spec = SpecEngine.create_default_spec(
+                ProjectCreate(
+                    name=demo_proj.name,
+                    description=demo_proj.description,
+                    board_id=demo_proj.board_id,
+                    interface_type=demo_proj.interface_type,
+                )
+            )
+            self._specs[demo_id] = demo_spec
+            self._versions[demo_id] = [
+                {
+                    "version_number": 1,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "author": "Hardware Engineer",
+                    "summary": "Initial synthesized baseline specification (v1.0).",
+                    "lifecycle": "draft",
+                    "spec": copy.deepcopy(demo_spec),
+                }
+            ]
 
     def create_project(self, user_id: str, payload: ProjectCreate) -> Project:
         project_id = f"proj-{uuid.uuid4().hex[:8]}"
@@ -87,18 +88,20 @@ class ProjectRepository:
         return project
 
     def list_projects(self, user_id: str) -> List[Project]:
-        """Lists projects owned by user, plus demo projects in dev mode."""
+        """Lists projects owned by user. Never leaks demo projects in production."""
+        is_dev = getattr(settings, "ENVIRONMENT", "development") in ("development", "test")
         return [
             p
             for p in self._projects.values()
-            if p.user_id == user_id or p.user_id == "default-user"
+            if p.user_id == user_id or (is_dev and p.user_id == "default-user")
         ]
 
     def get_project(self, project_id: str, user_id: str) -> Project:
         project = self._projects.get(project_id)
         if not project:
             raise NotFoundError(f"Project '{project_id}' not found")
-        if project.user_id != user_id and project.user_id != "default-user":
+        is_dev = getattr(settings, "ENVIRONMENT", "development") in ("development", "test")
+        if project.user_id != user_id and not (is_dev and project.user_id == "default-user"):
             raise ForbiddenError("You do not have access to this project")
         return project
 

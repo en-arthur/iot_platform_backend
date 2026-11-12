@@ -156,9 +156,9 @@ export default function ProjectWorkspaceLayout({ children, params }) {
           {/* Project Title on ONE line (truncate with ellipsis) */}
           <h1
             className="text-sm font-bold text-foreground truncate min-w-0"
-            title={project?.name || 'Solar LoRaWAN Soil Moisture Array'}
+            title={project?.name || ''}
           >
-            {project?.name || 'Solar LoRaWAN Soil Moisture Array'}
+            {project?.name || ''}
           </h1>
 
           {/* Version Chip */}

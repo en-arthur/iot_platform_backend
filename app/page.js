@@ -106,9 +106,9 @@ export default function LandingPage() {
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
-                  <Link href="/app/projects/proj-greenhouse-01">
+                  <Link href="/sign-in">
                     <Button variant="outline" size="lg" className="w-full sm:w-auto text-base hover:bg-muted/80">
-                      Explore Greenhouse Demo
+                      Sign In to Console
                     </Button>
                   </Link>
                 </motion.div>

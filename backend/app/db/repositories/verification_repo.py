@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, Optional
 from app.agents.debug_agent import DebugAgent
+from app.core.config import settings
 from app.core.exceptions import NotFoundError
 from app.db.repositories.files_repo import files_repo
 from app.db.repositories.project_repo import project_repo
@@ -23,19 +24,20 @@ class VerificationRepository:
         self._binaries: Dict[str, bytes] = {}
         self.runner = E2BSandboxRunner()
 
-        # Prepopulate demo run for 'proj-greenhouse-01'
-        demo_run_id = "run-greenhouse-01"
-        self._runs[demo_run_id] = VerificationRun(
-            run_id=demo_run_id,
-            project_id="proj-greenhouse-01",
-            version_number=1,
-            status="passed",
-            sandbox_provider="e2b",
-            logs="[DEMO] PlatformIO compiled firmware.bin (424 KB flash, 32 KB RAM). Ready for browser flashing.",
-            firmware_binary_url=f"/api/v1/runs/{demo_run_id}/firmware",
-            selftest_results={"wifi_connected": True, "bme280_ack": True, "fan_relay_switched": True},
-        )
-        self._binaries[demo_run_id] = b"\xe9\x04\x02\x20DEMO_ESP32_FIRMWARE_BINARY"
+        # Prepopulate demo run for 'proj-greenhouse-01' ONLY in development/test
+        if getattr(settings, "ENVIRONMENT", "development") in ("development", "test"):
+            demo_run_id = "run-greenhouse-01"
+            self._runs[demo_run_id] = VerificationRun(
+                run_id=demo_run_id,
+                project_id="proj-greenhouse-01",
+                version_number=1,
+                status="passed",
+                sandbox_provider="e2b",
+                logs="[DEMO] PlatformIO compiled firmware.bin (424 KB flash, 32 KB RAM). Ready for browser flashing.",
+                firmware_binary_url=f"/api/v1/runs/{demo_run_id}/firmware",
+                selftest_results={"wifi_connected": True, "bme280_ack": True, "fan_relay_switched": True},
+            )
+            self._binaries[demo_run_id] = b"\xe9\x04\x02\x20DEMO_ESP32_FIRMWARE_BINARY"
 
     def create_run(self, project_id: str, user_id: str) -> VerificationRun:
         project = project_repo.get_project(project_id, user_id)

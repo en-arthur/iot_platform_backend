@@ -49,24 +49,25 @@ class DeviceRepository:
         self._telemetry: Dict[str, List[TelemetryReading]] = {}
         self._alerts: Dict[str, List[DeviceAlert]] = {}
 
-        # Prepopulate demo device for greenhouse project
-        demo_device_id = "dev-greenhouse-01"
-        salt_hash = self._hash_secret("gh-demo-secret-token")
-        self._devices[demo_device_id] = DeviceRecord(
-            device_id=demo_device_id,
-            project_id="proj-greenhouse-01",
-            name="North GreenHouse ESP32-S3",
-            token_hash=salt_hash,
-            status="online",
-            last_seen_at=datetime.now(timezone.utc).isoformat(),
-        )
-        self._telemetry[demo_device_id] = [
-            TelemetryReading(
+        # Prepopulate demo device for greenhouse project ONLY in development/test
+        if getattr(settings, "ENVIRONMENT", "development") in ("development", "test"):
+            demo_device_id = "dev-greenhouse-01"
+            salt_hash = self._hash_secret("gh-demo-secret-token")
+            self._devices[demo_device_id] = DeviceRecord(
                 device_id=demo_device_id,
-                metrics={"temperature_c": 24.2, "humidity_pct": 62.0, "soil_moisture": 450},
+                project_id="proj-greenhouse-01",
+                name="North GreenHouse ESP32-S3",
+                token_hash=salt_hash,
+                status="online",
+                last_seen_at=datetime.now(timezone.utc).isoformat(),
             )
-        ]
-        self._alerts[demo_device_id] = []
+            self._telemetry[demo_device_id] = [
+                TelemetryReading(
+                    device_id=demo_device_id,
+                    metrics={"temperature_c": 24.2, "humidity_pct": 62.0, "soil_moisture": 450},
+                )
+            ]
+            self._alerts[demo_device_id] = []
 
     def _hash_secret(self, secret: str) -> str:
         return hashlib.sha256(secret.encode("utf-8")).hexdigest()
