@@ -16,6 +16,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Columns written by the onboarding form (app/(auth)/onboarding/page.js).
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS target_goal TEXT;
+
 -- =============================================================================
 -- 2. PROJECTS
 -- =============================================================================
@@ -234,50 +238,68 @@ ALTER TABLE public.driver_blocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.patterns ENABLE ROW LEVEL SECURITY;
 
 -- 1. Profiles: Users can select their own profile
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
 CREATE POLICY "Users can read own profile" ON public.profiles
     FOR SELECT TO authenticated USING (auth.uid() = id);
 
+-- 1b. Profiles: the onboarding page upserts the user's own row
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+CREATE POLICY "Users can insert own profile" ON public.profiles
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile" ON public.profiles
+    FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
 -- 2. Projects: Owner can read their projects
+DROP POLICY IF EXISTS "Users can read own projects" ON public.projects;
 CREATE POLICY "Users can read own projects" ON public.projects
     FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
 -- 3. Spec Versions: Read if owner of project
+DROP POLICY IF EXISTS "Users can read own spec versions" ON public.spec_versions;
 CREATE POLICY "Users can read own spec versions" ON public.spec_versions
     FOR SELECT TO authenticated USING (
         EXISTS (SELECT 1 FROM public.projects WHERE projects.id = spec_versions.project_id AND projects.user_id = auth.uid())
     );
 
 -- 4. Proposals: Read if owner of project
+DROP POLICY IF EXISTS "Users can read own proposals" ON public.proposals;
 CREATE POLICY "Users can read own proposals" ON public.proposals
     FOR SELECT TO authenticated USING (
         EXISTS (SELECT 1 FROM public.projects WHERE projects.id = proposals.project_id AND projects.user_id = auth.uid())
     );
 
 -- 5. Generated Files: Read if owner of project
+DROP POLICY IF EXISTS "Users can read own generated files" ON public.generated_files;
 CREATE POLICY "Users can read own generated files" ON public.generated_files
     FOR SELECT TO authenticated USING (
         EXISTS (SELECT 1 FROM public.projects WHERE projects.id = generated_files.project_id AND projects.user_id = auth.uid())
     );
 
 -- 6. Verification Runs: Read if owner of project
+DROP POLICY IF EXISTS "Users can read own verification runs" ON public.verification_runs;
 CREATE POLICY "Users can read own verification runs" ON public.verification_runs
     FOR SELECT TO authenticated USING (
         EXISTS (SELECT 1 FROM public.projects WHERE projects.id = verification_runs.project_id AND projects.user_id = auth.uid())
     );
 
 -- 7. Devices: Read if owner of project
+DROP POLICY IF EXISTS "Users can read own devices" ON public.devices;
 CREATE POLICY "Users can read own devices" ON public.devices
     FOR SELECT TO authenticated USING (
         EXISTS (SELECT 1 FROM public.projects WHERE projects.id = devices.project_id AND projects.user_id = auth.uid())
     );
 
 -- 8. Readings: Read if owner of project
+DROP POLICY IF EXISTS "Users can read own readings" ON public.readings;
 CREATE POLICY "Users can read own readings" ON public.readings
     FOR SELECT TO authenticated USING (
         EXISTS (SELECT 1 FROM public.projects WHERE projects.id = readings.project_id AND projects.user_id = auth.uid())
     );
 
 -- 9. Audit Log: Read if owner of project
+DROP POLICY IF EXISTS "Users can read own audit log" ON public.audit_log;
 CREATE POLICY "Users can read own audit log" ON public.audit_log
     FOR SELECT TO authenticated USING (
         auth.uid() = user_id OR
@@ -285,14 +307,18 @@ CREATE POLICY "Users can read own audit log" ON public.audit_log
     );
 
 -- 10. Library Tables: Public read for all authenticated users
+DROP POLICY IF EXISTS "Public read for library boards" ON public.library_boards;
 CREATE POLICY "Public read for library boards" ON public.library_boards
     FOR SELECT TO authenticated, anon USING (true);
 
+DROP POLICY IF EXISTS "Public read for library peripherals" ON public.library_peripherals;
 CREATE POLICY "Public read for library peripherals" ON public.library_peripherals
     FOR SELECT TO authenticated, anon USING (true);
 
+DROP POLICY IF EXISTS "Public read for driver blocks" ON public.driver_blocks;
 CREATE POLICY "Public read for driver blocks" ON public.driver_blocks
     FOR SELECT TO authenticated, anon USING (true);
 
+DROP POLICY IF EXISTS "Public read for patterns" ON public.patterns;
 CREATE POLICY "Public read for patterns" ON public.patterns
     FOR SELECT TO authenticated, anon USING (true);
