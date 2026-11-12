@@ -244,5 +244,15 @@ class ProjectRepository:
             rec_a["spec"], rec_b["spec"], version_a=version_a, version_b=version_b
         )
 
+    def delete_project(self, project_id: str, user_id: str) -> None:
+        """Permanently delete a project and all associated specs, versions, and data."""
+        project = self.get_project(project_id, user_id)
+        # Prevent deleting demo projects via the API
+        if project.user_id == "default-user":
+            raise ForbiddenError("Cannot delete demo projects")
+        self._projects.pop(project_id, None)
+        self._specs.pop(project_id, None)
+        self._versions.pop(project_id, None)
+
 
 project_repo = ProjectRepository()

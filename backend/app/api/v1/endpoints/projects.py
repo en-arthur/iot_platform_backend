@@ -36,6 +36,15 @@ async def get_project(
     return project_repo.get_project(project_id=project_id, user_id=current_user.id)
 
 
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(
+    project_id: str,
+    current_user: AuthUser = Depends(get_current_user),
+) -> None:
+    """Permanently delete a project and all its specs, versions, and associated data."""
+    project_repo.delete_project(project_id=project_id, user_id=current_user.id)
+
+
 @router.get("/{project_id}/spec", response_model=Dict[str, Any])
 async def get_project_spec(
     project_id: str,
