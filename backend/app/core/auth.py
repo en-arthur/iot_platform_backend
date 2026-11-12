@@ -24,12 +24,19 @@ def _resolve_jwks_url() -> Optional[str]:
 
     The value is normalised first (trimmed, scheme parsed case-insensitively) so
     copy-pasted env values with stray whitespace or an upper-case scheme still
-    resolve correctly.
+    resolve correctly. An invalid SUPABASE_JWKS_URL never disables verification:
+    it just falls back to the URL derived from SUPABASE_URL.
     """
     explicit = (settings.SUPABASE_JWKS_URL or "").strip()
     if explicit:
         parsed = urlparse(explicit)
-        return explicit if parsed.scheme in ("http", "https") and parsed.hostname else None
+        if parsed.scheme in ("http", "https") and parsed.hostname:
+            return explicit
+        logger.warning(
+            "Ignoring SUPABASE_JWKS_URL=%r (not a valid http(s) URL); "
+            "deriving the JWKS endpoint from SUPABASE_URL instead",
+            explicit[:60],
+        )
 
     raw = (settings.SUPABASE_URL or "").strip().rstrip("/")
     parsed = urlparse(raw)
@@ -52,7 +59,11 @@ def _get_jwks_client() -> Optional[PyJWKClient]:
         return _jwks_client
     _jwks_url = _resolve_jwks_url()
     if not _jwks_url:
-        _jwks_error = "SUPABASE_URL is not set or is not a valid http(s) URL"
+        _jwks_error = (
+            "cannot resolve a JWKS endpoint: set "
+            "SUPABASE_URL=https://<ref>.supabase.co and remove any invalid "
+            "SUPABASE_JWKS_URL"
+        )
         return None
     try:
         _jwks_client = PyJWKClient(_jwks_url)
