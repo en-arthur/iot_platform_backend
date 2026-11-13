@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, use } from 'react';
+import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSpecStore } from '@/lib/store/useSpecStore';
 import { useUIStore } from '@/lib/store/useUIStore';
+import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,6 +52,22 @@ export default function ProjectWorkspaceLayout({ children, params }) {
   } = useSpecStore();
 
   const { toggleSidebar } = useUIStore();
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateCode = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    try {
+      await api.generateProjectCode(projectId);
+      await loadProjectAndSpec(projectId);
+      router.push(`/app/projects/${projectId}/code`);
+    } catch (err) {
+      alert(`Code generation failed: ${err.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   useEffect(() => {
     if (projectId) {
@@ -84,6 +101,7 @@ export default function ProjectWorkspaceLayout({ children, params }) {
   const isAlreadyConfirmed =
     !hasBlockingErrorsOrOpenFields &&
     ['confirmed', 'generated', 'verified', 'deployed'].includes(project?.lifecycle);
+  const hasGeneratedCode = ['generated', 'verified', 'deployed'].includes(project?.lifecycle);
 
   // Version chip calculation
   const versionChipText = hasBlockingErrorsOrOpenFields
@@ -176,13 +194,26 @@ export default function ProjectWorkspaceLayout({ children, params }) {
           </span>
         </div>
 
-        {/* Right side: Server online status + Confirm Spec Button */}
-        <div className="flex items-center gap-3 shrink-0">
-          {/* Server online indicator */}
-          <div className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-            <span className="font-medium text-foreground">Server online</span>
-          </div>
+        {/* Right side: Code generation + Confirm Spec Button */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Generate firmware / cloud / interface code */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateCode}
+            disabled={isGenerating}
+            className="h-8 text-xs gap-1.5 border-border"
+            title="Synthesize firmware, cloud backend and web interface code"
+          >
+            {isGenerating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Code2 className="h-3.5 w-3.5" />
+            )}
+            <span className="hidden sm:inline">
+              {isGenerating ? 'Generating...' : hasGeneratedCode ? 'Regenerate code' : 'Generate code'}
+            </span>
+          </Button>
 
           {/* Tablet drawer toggle button for Checks and AI (<1280px) */}
           <Button

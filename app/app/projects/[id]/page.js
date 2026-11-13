@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, use } from 'react';
+import Link from 'next/link';
 import { useSpecStore } from '@/lib/store/useSpecStore';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { Button } from '@/components/ui/button';
@@ -334,6 +335,7 @@ export default function SpecWorkspacePage({ params }) {
   const {
     spec,
     issues,
+    error,
     isLoading,
     updateFieldOptimistic,
     fieldFilter,
@@ -363,11 +365,28 @@ export default function SpecWorkspacePage({ params }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setMobileDrawerOpen]);
 
-  if (isLoading || !spec) {
+  if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-12 text-sm text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin mr-2 text-primary" />
         <span>Loading 12-Section Spec Model...</span>
+      </div>
+    );
+  }
+
+  if (!spec) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 p-12 text-sm text-muted-foreground">
+        <AlertCircle className="h-6 w-6 text-destructive" />
+        <p className="font-medium text-foreground">This project could not be loaded.</p>
+        <p className="max-w-md text-center">
+          {error || 'The project may have been removed, or the backend restarted and cleared its in-memory data.'}
+        </p>
+        <Link href="/app/projects">
+          <Button variant="outline" size="sm" className="mt-2">
+            Back to projects
+          </Button>
+        </Link>
       </div>
     );
   }

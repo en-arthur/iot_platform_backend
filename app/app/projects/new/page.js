@@ -17,7 +17,6 @@ import {
   Sliders,
   Shield,
   Loader2,
-  Sparkles,
   Plus,
   RefreshCw,
 } from 'lucide-react';
@@ -130,6 +129,15 @@ export default function NewProjectWizard() {
         interface_type: interfaceType,
         custom_peripherals: customList,
       });
+
+      // Synthesize firmware, cloud backend and interface so the workspace opens
+      // with real code instead of an empty placeholder.
+      try {
+        await api.generateProjectCode(project.id);
+      } catch (genErr) {
+        console.warn('Code generation failed:', genErr.message);
+      }
+
       router.push(`/app/projects/${project.id}`);
     } catch (err) {
       alert(`Failed to create project: ${err.message}`);
@@ -489,12 +497,12 @@ export default function NewProjectWizard() {
             className="gap-2 shadow-lg px-6"
           >
             {submitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
               <>
-                <Sparkles className="h-4 w-4" />
-                <span>Submit</span>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Generating code...</span>
               </>
+            ) : (
+              <span>Submit</span>
             )}
           </Button>
         )}

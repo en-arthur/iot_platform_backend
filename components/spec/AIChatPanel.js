@@ -31,7 +31,7 @@ export function AIChatPanel({ projectId }) {
   ]);
   const [clarifyingQuestion, setClarifyingQuestion] = useState(null);
 
-  const { isStreaming, startStream, cancel } = useEventStream({
+  const { isStreaming, startStream, cancel, error: streamError } = useEventStream({
     onToken: (token) => {
       setMessages((prev) => {
         const last = prev[prev.length - 1];
@@ -68,7 +68,7 @@ export function AIChatPanel({ projectId }) {
     setPrompt('');
     setClarifyingQuestion(null);
 
-    startStream('/api/v1/projects/' + projectId + '/chat', { message: textToSend }, 'chat');
+    startStream('/projects/' + projectId + '/chat', { prompt: textToSend }, 'chat');
   };
 
   const handleAnswerQuestion = (answer) => {
@@ -198,6 +198,11 @@ export function AIChatPanel({ projectId }) {
 
       {/* Input Form */}
       <div className="p-3 border-t border-border bg-card/60">
+        {streamError && (
+          <p className="mb-2 text-[11px] text-destructive">
+            AI stream error: {String(streamError)}
+          </p>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
