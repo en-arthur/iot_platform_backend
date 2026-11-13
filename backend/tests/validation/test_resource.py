@@ -10,6 +10,11 @@ def test_resource_detects_insufficient_flash_for_ota():
         name="Small MCU",
         vendor="Test",
         mcu="Cortex-M0+",
+        platform="atmelavr",
+        pio_board="uno",
+        env_name="uno",
+        connectivity="none",
+        pin_naming="D",
         specs=BoardSpecs(flash_mb=2.0),
         pin_map={},
     )

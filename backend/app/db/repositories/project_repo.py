@@ -4,8 +4,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import settings
-from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
 from app.db import supabase_store
+from app.db.repositories.library_repo import library_repo
 from app.models.project import Project, ProjectConfirmResponse, ProjectCreate
 from app.models.spec import FieldPatchItem, SpecDiff, SpecVersionSummary
 from app.models.validation import ValidationIssue
@@ -58,6 +59,14 @@ class ProjectRepository:
             ]
 
     def create_project(self, user_id: str, payload: ProjectCreate) -> Project:
+        # Reject boards we have no build recipe for. Without this, codegen would
+        # have to guess a target, which is how the Pico W silently produced
+        # ESP32-S3 firmware.
+        if library_repo.get_board(payload.board_id) is None:
+            raise ValidationError(
+                f"Unknown board '{payload.board_id}'. Choose a board from the hardware library."
+            )
+
         project_id = f"proj-{uuid.uuid4().hex[:8]}"
         project = Project(
             id=project_id,

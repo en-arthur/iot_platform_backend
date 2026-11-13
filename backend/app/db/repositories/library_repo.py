@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from app.models.library import Board, DriverBlock, Pattern, Peripheral
 
 # =============================================================================
@@ -13,6 +13,14 @@ SEED_BOARDS: List[Board] = [
         vendor="Espressif",
         mcu="ESP32-S3 (Xtensa Dual-core 32-bit LX7)",
         status="tested",
+        platform="espressif32",
+        pio_board="esp32-s3-devkitc-1",
+        framework="arduino",
+        env_name="esp32s3",
+        connectivity="wifi",
+        pin_naming="GPIO",
+        binary_ext=".bin",
+        upload_protocol="esptool",
         specs={
             "flash_mb": 8.0,
             "psram_mb": 2.0,
@@ -63,6 +71,17 @@ SEED_BOARDS: List[Board] = [
         vendor="Raspberry Pi",
         mcu="RP2040 Dual ARM Cortex-M0+",
         status="draft",
+        # PlatformIO's raspberrypi platform ships `pico` and
+        # `nanorp2040connect` only; the W variant needs a custom board
+        # definition (PICO_BOARD=pico_w) before this entry can be promoted.
+        platform="raspberrypi",
+        pio_board="rpipicow",
+        framework="arduino",
+        env_name="pico",
+        connectivity="wifi",
+        pin_naming="GP",
+        binary_ext=".uf2",
+        upload_protocol="uf2",
         specs={
             "flash_mb": 2.0,
             "psram_mb": 0.0,
@@ -78,7 +97,7 @@ SEED_BOARDS: List[Board] = [
             "GP4": {"name": "GP4", "capabilities": ["I2C0_SDA", "SPI0_RX", "GPIO"]},
             "GP5": {"name": "GP5", "capabilities": ["I2C0_SCL", "SPI0_CSn", "GPIO"]},
         },
-        tested_notes="In draft status; firmware synthesis tested with pico-sdk v1.5.",
+        tested_notes="Draft: PlatformIO's raspberrypi platform has no Pico W board definition yet; a custom board JSON is required before verification can pass.",
     ),
 ]
 
@@ -180,6 +199,70 @@ class LibraryRepository:
 
     def get_board(self, board_id: str) -> Optional[Board]:
         return self._boards.get(board_id)
+
+    def build_profile(self, board_id: str) -> Optional[Dict[str, Any]]:
+        """PlatformIO build recipe for a board, or None if it is unknown.
+
+        Code generation, the sandbox and the artifact lookup all read the board
+        record through this method so a board id alone is never enough to
+        silently produce firmware for a different target.
+        """
+        board = self.get_board(board_id)
+        if not board:
+            return None
+        return {
+            "board_id": board.id,
+            "platform": board.platform,
+            "board": board.pio_board,
+            "framework": board.framework,
+            "env": board.env_name,
+            "binary_ext": board.binary_ext,
+            "upload_protocol": board.upload_protocol,
+            "connectivity": board.connectivity,
+        }
+
+    def validate_catalog(self) -> List[str]:
+        """Return a list of problems with the hardware catalog (empty is good).
+
+        Every entry must declare its build recipe explicitly. Pydantic defaults
+        exist for backwards compatibility, so an omitted field would otherwise
+        inherit ESP32 values without anyone noticing.
+        """
+        problems: List[str] = []
+        built_in = {
+            "platform",
+            "pio_board",
+            "env_name",
+            "connectivity",
+            "pin_naming",
+            "binary_ext",
+            "upload_protocol",
+        }
+        seen: set = set()
+
+        for board in self._boards.values():
+            if board.id in seen:
+                problems.append(f"{board.id}: duplicate board id")
+            seen.add(board.id)
+
+            missing = sorted(built_in - board.model_fields_set)
+            if missing:
+                problems.append(
+                    f"{board.id}: build recipe missing explicit {', '.join(missing)}"
+                )
+
+            if not board.pio_board.strip():
+                problems.append(f"{board.id}: empty PlatformIO board id")
+
+            if not board.env_name.replace("_", "").isalnum():
+                problems.append(
+                    f"{board.id}: env name '{board.env_name}' is not a valid identifier"
+                )
+
+            if "flash_mb" not in board.specs.model_fields_set:
+                problems.append(f"{board.id}: flash_mb must be declared explicitly")
+
+        return problems
 
     def list_peripherals(self, query: Optional[str] = None) -> List[Peripheral]:
         """Filters peripherals by name, category, or interface query."""

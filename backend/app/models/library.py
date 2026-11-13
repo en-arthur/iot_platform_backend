@@ -2,6 +2,9 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 HardwareStatus = Literal["draft", "tested", "deprecated", "unverified"]
+# How the board reaches the platform's cloud contract. BLE-only boards cannot
+# speak MQTT/IP and must not be offered for the standard firmware flow.
+Connectivity = Literal["wifi", "ethernet", "ble", "none"]
 
 
 class PinCapability(BaseModel):
@@ -14,8 +17,10 @@ class PinCapability(BaseModel):
 
 
 class BoardSpecs(BaseModel):
-    flash_mb: float = 8.0
-    psram_mb: float = 2.0
+    # Required: a board that forgets to declare its flash would otherwise
+    # inherit the ESP32-S3 numbers and pass the OTA sizing rule by accident.
+    flash_mb: float
+    psram_mb: float = 0.0
     clock_mhz: int = 240
     operating_voltage_v: float = 3.3
     wifi: Optional[str] = None
@@ -29,6 +34,18 @@ class Board(BaseModel):
     vendor: str
     mcu: str
     status: HardwareStatus = "tested"
+
+    # PlatformIO build recipe. This is the single source of truth for code
+    # generation: platformio.ini is derived from these fields, never hardcoded.
+    platform: str  # PlatformIO development platform, e.g. "espressif32"
+    pio_board: str  # PlatformIO board id, e.g. "esp32-s3-devkitc-1"
+    framework: str = "arduino"
+    env_name: str  # PlatformIO environment name, e.g. "esp32s3"
+    connectivity: Connectivity
+    pin_naming: str  # How this board names pins: "GPIO", "GP", "D", "P"
+    binary_ext: str = ".bin"
+    upload_protocol: str = "esptool"
+
     specs: BoardSpecs
     pin_map: Dict[str, PinCapability]
     tested_notes: Optional[str] = None

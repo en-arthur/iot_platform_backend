@@ -1,4 +1,6 @@
 from typing import Any, Dict, List
+from app.core.exceptions import ValidationError
+from app.db.repositories.library_repo import library_repo
 from app.models.files import GeneratedFile
 
 
@@ -18,6 +20,16 @@ class ArduinoFirmwareGenerator:
         data_model = spec.get("data_model", {}).get("fields", {})
 
         board_id = str(hw.get("board_id", {}).get("value") or "esp32-s3-devkitc-1")
+
+        # The board record owns the build recipe. A board id that is not in the
+        # hardware library must fail loudly instead of quietly emitting
+        # ESP32-S3 configuration for a different target.
+        board = library_repo.get_board(board_id)
+        if board is None:
+            raise ValidationError(
+                f"Board '{board_id}' is not in the hardware library; add it before generating firmware."
+            )
+
         deep_sleep_enabled = bool(hw.get("deep_sleep_enabled", {}).get("value", False))
         deep_sleep_sec = int(hw.get("deep_sleep_interval_seconds", {}).get("value") or 60)
 
@@ -34,19 +46,19 @@ class ArduinoFirmwareGenerator:
         declared_cmds = behavior.get("declared_commands", {}).get("value") or ["TRIGGER_FAN_FORCE_ON", "TRIGGER_FAN_FORCE_OFF", "REBOOT_NODE"]
 
         # =====================================================================
-        # 1. platformio.ini (Arduino Framework)
+        # 1. platformio.ini (framework + target from the board record)
         # =====================================================================
-        platformio_content = f"""; PlatformIO Project Configuration for Arduino Framework
-; Target: {board_id}
+        platformio_content = f"""; PlatformIO Project Configuration for {board.framework.capitalize()} Framework
+; Target: {board.id}
 ; Single-source-of-truth project spec v{version}.0
 
 [platformio]
-default_envs = esp32s3
+default_envs = {board.env_name}
 
-[env:esp32s3]
-platform = espressif32
-board = esp32-s3-devkitc-1
-framework = arduino
+[env:{board.env_name}]
+platform = {board.platform}
+board = {board.pio_board}
+framework = {board.framework}
 monitor_speed = 115200
 
 lib_deps =

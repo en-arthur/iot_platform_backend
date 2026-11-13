@@ -4,8 +4,9 @@ from typing import List
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from app.core.auth import get_current_user
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError, ValidationError
 from app.db.repositories.files_repo import files_repo
+from app.db.repositories.library_repo import library_repo
 from app.db.repositories.project_repo import project_repo
 from app.models.auth import AuthUser
 from app.models.files import FileContentUpdate, FileListItem, GeneratedFile
@@ -67,7 +68,19 @@ async def generate_code_sse(
     current_user: AuthUser = Depends(get_current_user),
 ):
     """Synthesize complete project code (Arduino firmware, Cloud worker, Web app) over SSE."""
-    project_repo.get_project(project_id, current_user.id)
+    project = project_repo.get_project(project_id, current_user.id)
+
+    # Resolve the target before the stream starts, so an unsupported board is a
+    # clean 422 instead of a truncated event stream.
+    spec = project_repo.get_spec(project_id, current_user.id)
+    board_id = str(
+        spec.get("hardware", {}).get("fields", {}).get("board_id", {}).get("value")
+        or project.board_id
+    )
+    if library_repo.get_board(board_id) is None:
+        raise ValidationError(
+            f"Board '{board_id}' is not in the hardware library; add it before generating firmware."
+        )
 
     async def event_generator():
         yield f"event: status\ndata: {json.dumps({'message': 'Initializing code synthesis pipeline...'})}\n\n"
