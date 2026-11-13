@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter
 from app.core.config import settings
 from app.core.auth import jwks_diagnostic, jwt_verification_mode
+from app.db import supabase_store
 from app.models.health import HealthResponse
 
 router = APIRouter()
@@ -32,6 +33,7 @@ async def check_health() -> HealthResponse:
         supabase_host=_supabase_host(),
         jwks_url=jwks_url or "unset",
         jwks_error=(jwks_error or "")[:200],
+        storage="supabase" if supabase_store.enabled() else "memory",
         components={
             "database": "operational",
             "mqtt_broker": "operational",

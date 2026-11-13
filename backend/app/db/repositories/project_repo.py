@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import settings
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
+from app.db import supabase_store
 from app.models.project import Project, ProjectConfirmResponse, ProjectCreate
 from app.models.spec import FieldPatchItem, SpecDiff, SpecVersionSummary
 from app.models.validation import ValidationIssue
@@ -86,6 +87,16 @@ class ProjectRepository:
                 "spec": copy.deepcopy(initial_spec),
             }
         ]
+
+        # Mirror to Supabase so the project survives redeploys.
+        supabase_store.save_project(project, current_spec=initial_spec)
+        supabase_store.save_spec_version(
+            project_id=project_id,
+            version_number=1,
+            spec=initial_spec,
+            author="Hardware Engineer",
+            summary="Initial synthesized spec baseline (v1.0).",
+        )
         return project
 
     def list_projects(self, user_id: str) -> List[Project]:
@@ -133,6 +144,7 @@ class ProjectRepository:
         # Edits to a project always return it to draft lifecycle
         project.lifecycle = "draft"
         project.updated_at = datetime.now(timezone.utc).isoformat()
+        supabase_store.save_project(project, current_spec=current_spec)
         return current_spec, sorted(list(set(all_affected)))
 
     def validate_spec(self, project_id: str, user_id: str) -> List[ValidationIssue]:
@@ -141,10 +153,14 @@ class ProjectRepository:
         val_res = validation_engine.validate_spec(spec)
 
         # Update lifecycle to validated if no errors, or draft if errors exist
+        lifecycle_before = project.lifecycle
         if val_res.can_confirm and project.lifecycle == "draft":
             project.lifecycle = "validated"
         elif not val_res.can_confirm and project.lifecycle == "validated":
             project.lifecycle = "draft"
+
+        if project.lifecycle != lifecycle_before:
+            supabase_store.save_project(project, current_spec=spec)
 
         return val_res.issues
 
@@ -200,6 +216,16 @@ class ProjectRepository:
         }
         self._versions[project_id].append(version_record)
 
+        supabase_store.save_project(project, current_spec=spec)
+        supabase_store.save_spec_version(
+            project_id=project_id,
+            version_number=new_version_num,
+            spec=spec,
+            author="Hardware Engineer",
+            summary=f"Confirmed specification sign-off (v{new_version_num}.0).",
+            diff=diff.model_dump(),
+        )
+
         # Audit log entry
         from app.db.repositories.audit_repo import audit_repo
         audit_repo.record_action(
@@ -254,6 +280,7 @@ class ProjectRepository:
         self._projects.pop(project_id, None)
         self._specs.pop(project_id, None)
         self._versions.pop(project_id, None)
+        supabase_store.delete_project(project_id)
 
 
 project_repo = ProjectRepository()

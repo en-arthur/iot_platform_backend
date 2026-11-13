@@ -2,6 +2,7 @@ import hashlib
 from typing import Dict, List, Optional
 from app.codegen.engine import codegen_engine
 from app.core.exceptions import NotFoundError
+from app.db import supabase_store
 from app.db.repositories.project_repo import project_repo
 from app.models.files import GeneratedFile
 
@@ -30,6 +31,10 @@ class FilesRepository:
         file_obj.content = new_content
         file_obj.is_protected = True
         file_obj.checksum = hashlib.sha256(new_content.encode("utf-8")).hexdigest()
+
+        project = project_repo._projects.get(project_id)
+        if project:
+            supabase_store.save_file(project_id, project.version, file_obj)
         return file_obj
 
     def generate_project_code(
@@ -54,6 +59,10 @@ class FilesRepository:
 
         # Update lifecycle to 'generated'
         project.lifecycle = "generated"
+
+        # Mirror spec lifecycle + generated files to Supabase.
+        supabase_store.save_project(project, current_spec=spec)
+        supabase_store.replace_files(project_id, project.version, self.list_files(project_id))
 
         # Record audit log
         from app.db.repositories.audit_repo import audit_repo

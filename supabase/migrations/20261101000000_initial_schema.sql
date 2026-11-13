@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS public.projects (
 
 CREATE INDEX IF NOT EXISTS idx_projects_user_id ON public.projects(user_id);
 
+-- Latest (editable) specification, persisted on every create/patch/confirm so
+-- projects survive backend redeploys.
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS current_spec JSONB;
+
 -- =============================================================================
 -- 3. SPEC VERSIONS (Immutable snapshots of 12-section model)
 -- =============================================================================

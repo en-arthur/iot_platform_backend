@@ -19,6 +19,9 @@ class HealthResponse(BaseModel):
     jwks_url: str = "unset"
     jwks_error: str = ""
 
+    # "supabase" when the service-role key is configured (durable), else "memory".
+    storage: str = "memory"
+
     components: Dict[str, str] = Field(
         default_factory=lambda: {
             "database": "operational",

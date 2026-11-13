@@ -22,6 +22,13 @@ async def lifespan(app: FastAPI):
     logger.info(
         f"Starting {settings.PROJECT_NAME} v{settings.VERSION} [{settings.ENVIRONMENT}]"
     )
+    # Restore projects/specs/files persisted in Supabase (no-op without a key).
+    try:
+        from app.db.supabase_store import hydrate
+
+        hydrate()
+    except Exception as exc:  # never block startup on the database
+        logger.warning(f"Supabase hydration skipped: {exc}")
     yield
     logger.info(f"Shutting down {settings.PROJECT_NAME}")
 
