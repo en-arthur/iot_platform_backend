@@ -52,7 +52,7 @@ def test_dispatch_undeclared_command_rejected(client, create_test_token):
 def test_dispatch_declared_command_success(client, create_test_token, monkeypatch):
     token = create_test_token()
 
-    async def fake_publish(topic, payload):
+    async def fake_publish(topic, payload, **kwargs):
         return True
 
     monkeypatch.setattr(
@@ -71,6 +71,24 @@ def test_dispatch_declared_command_success(client, create_test_token, monkeypatc
     data = response.json()
     assert data["status"] == "dispatched"
     assert data["command"] == "TRIGGER_FAN_FORCE_ON"
+
+
+def test_dispatch_queues_when_broker_unavailable(client, create_test_token, monkeypatch):
+    token = create_test_token()
+
+    async def fake_publish(topic, payload, **kwargs):
+        return False
+
+    monkeypatch.setattr(
+        "app.db.repositories.device_repo.mqtt_service.publish", fake_publish
+    )
+    response = client.post(
+        "/api/v1/devices/dev-greenhouse-01/commands",
+        json={"command": "TRIGGER_FAN_FORCE_ON", "params": {}},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "queued"
 
 
 def test_telemetry_ingestion_and_threshold_alert(client, create_test_token):

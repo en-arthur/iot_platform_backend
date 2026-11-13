@@ -1,10 +1,11 @@
 import hashlib
+import logging
 import secrets
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from app.core.config import settings
-from app.core.exceptions import APIError, ConflictError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, NotFoundError, ValidationError
 from app.db import supabase_store
 from app.db.repositories.project_repo import project_repo
 from app.models.devices import (
@@ -49,6 +50,10 @@ class DeviceRepository:
         self._devices: Dict[str, DeviceRecord] = {}
         self._telemetry: Dict[str, List[TelemetryReading]] = {}
         self._alerts: Dict[str, List[DeviceAlert]] = {}
+        # Commands waiting for a sleeping broker. Delivered by a background
+        # worker instead of failing the HTTP request with a 503.
+        self._outbox: List[Dict[str, Any]] = []
+        self._worker = None
 
         # Prepopulate demo device for greenhouse project ONLY in development/test
         if getattr(settings, "ENVIRONMENT", "development") in ("development", "test"):
@@ -69,6 +74,50 @@ class DeviceRepository:
                 )
             ]
             self._alerts[demo_device_id] = []
+
+    def _ensure_worker(self) -> None:
+        """Start the outbox worker on the running event loop (if any)."""
+        import asyncio
+
+        if self._worker and not self._worker.done():
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:  # sync context (tests, scripts)
+            return
+        self._worker = loop.create_task(self._flush_outbox())
+
+    async def _flush_outbox(self) -> None:
+        """Retry queued commands until the broker accepts them."""
+        import asyncio
+
+        logger = logging.getLogger("app.db.device_repo")
+        while self._outbox:
+            await asyncio.sleep(15)
+            remaining: List[Dict[str, Any]] = []
+            for item in list(self._outbox):
+                item["attempts"] += 1
+                ok = await mqtt_service.publish(
+                    item["topic"], item["payload"], attempts=1
+                )
+                if ok:
+                    logger.info(
+                        "Delivered queued command %s after %s attempt(s)",
+                        item["payload"].get("command_id"),
+                        item["attempts"],
+                    )
+                elif item["attempts"] < 40:
+                    remaining.append(item)
+                else:
+                    logger.error(
+                        "Dropping queued command %s after %s attempts",
+                        item["payload"].get("command_id"),
+                        item["attempts"],
+                    )
+            self._outbox = remaining
+
+    def pending_commands(self) -> List[Dict[str, Any]]:
+        return list(self._outbox)
 
     def _hash_secret(self, secret: str) -> str:
         return hashlib.sha256(secret.encode("utf-8")).hexdigest()
@@ -232,16 +281,21 @@ class DeviceRepository:
             "timestamp": now_str,
         }
 
-        published = await mqtt_service.publish(topic, payload)
+        published = await mqtt_service.publish(topic, payload, attempts=1)
+        delivery_status = "dispatched"
         if not published:
-            raise APIError(
-                status_code=503,
-                detail=(
-                    f"MQTT broker unavailable: command '{req.command}' was not delivered "
-                    f"to device '{device_id}'. Check MQTT_BROKER_HOST / MQTT_USE_TLS / "
-                    f"MQTT_ADMIN_* credentials. Cause: "
-                    f"{mqtt_service.last_error or 'unknown'}"
-                ),
+            # The Render broker sleeps when idle and can be unreachable for a
+            # couple of minutes. Queue the command instead of failing the
+            # request; the background worker retries until it goes through.
+            self._outbox.append(
+                {"topic": topic, "payload": payload, "attempts": 0}
+            )
+            self._ensure_worker()
+            delivery_status = "queued"
+            logging.getLogger("app.db.device_repo").warning(
+                "Broker unavailable (%s); queued command %s for delivery",
+                mqtt_service.last_error,
+                cmd_id,
             )
 
         # Record audit log
@@ -250,7 +304,12 @@ class DeviceRepository:
             action="DEVICE_COMMAND",
             user_id=user_id,
             project_id=dev.project_id,
-            payload={"device_id": device_id, "command": req.command, "params": req.params},
+            payload={
+                "device_id": device_id,
+                "command": req.command,
+                "params": req.params,
+                "delivery": delivery_status,
+            },
         )
 
         return DeviceCommandResponse(
@@ -258,7 +317,7 @@ class DeviceRepository:
             device_id=device_id,
             command=req.command,
             params=req.params,
-            status="dispatched",
+            status=delivery_status,
             dispatched_at=now_str,
         )
 

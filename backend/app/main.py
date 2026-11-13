@@ -42,11 +42,11 @@ async def lifespan(app: FastAPI):
             while True:
                 try:
                     await mqtt_service.publish(
-                        "system/keepalive", {"ts": time.time()}, attempts=1
+                        "system/keepalive", {"ts": time.time()}, attempts=2
                     )
                 except Exception as exc:  # pragma: no cover - best effort
                     logger.debug(f"MQTT keepalive failed: {exc}")
-                await _asyncio.sleep(480)
+                await _asyncio.sleep(300)
 
         keepalive_task = _asyncio.create_task(_mqtt_keepalive())
 
