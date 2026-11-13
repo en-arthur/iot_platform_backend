@@ -74,6 +74,23 @@ class ProjectRepository:
 
         # Synthesize initial 12-section spec
         initial_spec = SpecEngine.create_default_spec(payload)
+
+        # A deployment date supplied by the wizard satisfies the one mandatory
+        # field that otherwise blocks the first confirmation.
+        if getattr(payload, "target_deployment_date", None):
+            fields = initial_spec.setdefault("metadata", {}).setdefault("fields", {})
+            field = fields.get("target_deployment_date")
+            if field is None:
+                fields["target_deployment_date"] = {
+                    "value": payload.target_deployment_date,
+                    "state": "confirmed",
+                    "source": "user",
+                }
+            else:
+                field["value"] = payload.target_deployment_date
+                field["state"] = "confirmed"
+                field["source"] = "user"
+
         self._specs[project_id] = initial_spec
 
         # Create version 1 baseline

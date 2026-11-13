@@ -57,6 +57,7 @@ class ProposalRepository:
             status="pending",
         )
         self._proposals.setdefault(project_id, {})[proposal_id] = proposal
+        supabase_store.save_proposal(proposal)
         return proposal
 
     def list_proposals(self, project_id: str) -> List[SpecProposal]:
@@ -98,6 +99,9 @@ class ProposalRepository:
         # 3. Mark proposal as approved
         proposal.status = "approved"
         proposal.resolved_at = datetime.now(timezone.utc).isoformat()
+        supabase_store.resolve_proposal(
+            proposal_id, "approved", proposal.resolved_at
+        )
 
         # 4. Mint a new version reflecting approved AI proposal
         project = project_repo.get_project(project_id, user_id)
@@ -148,6 +152,7 @@ class ProposalRepository:
 
         proposal.status = "rejected"
         proposal.resolved_at = datetime.now(timezone.utc).isoformat()
+        supabase_store.resolve_proposal(proposal_id, "rejected", proposal.resolved_at)
 
         return ProposalResolutionResponse(
             success=True,

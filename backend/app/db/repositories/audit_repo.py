@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+from app.db import supabase_store
 from app.models.audit import AuditLogEntry
 
 
@@ -29,6 +30,7 @@ class AuditRepository:
             created_at=datetime.now(timezone.utc).isoformat(),
         )
         self._logs.append(entry)
+        supabase_store.save_audit_entry(entry)
         return entry
 
     def list_logs_for_project(

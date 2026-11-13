@@ -15,6 +15,9 @@ class ProjectBase(BaseModel):
 
 class ProjectCreate(ProjectBase):
     custom_peripherals: Optional[List[str]] = Field(default_factory=list)
+    # Collected by the wizard so the mandatory metadata.target_deployment_date
+    # field starts confirmed instead of blocking the first spec confirmation.
+    target_deployment_date: Optional[str] = Field(default=None, max_length=40)
 
 
 class ProjectUpdate(BaseModel):

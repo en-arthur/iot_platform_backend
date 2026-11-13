@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from app.core.config import settings
 from app.core.exceptions import APIError, ConflictError, NotFoundError, ValidationError
+from app.db import supabase_store
 from app.db.repositories.project_repo import project_repo
 from app.models.devices import (
     DeviceAlert,
@@ -103,6 +104,9 @@ class DeviceRepository:
         self._telemetry[device_id] = []
         self._alerts[device_id] = []
 
+        # Persist so provisioned devices survive a backend restart.
+        supabase_store.save_device(record)
+
         # Register MQTT credentials asynchronously (non-blocking)
         try:
             loop = asyncio.get_event_loop()
@@ -183,6 +187,7 @@ class DeviceRepository:
         del self._devices[device_id]
         self._telemetry.pop(device_id, None)
         self._alerts.pop(device_id, None)
+        supabase_store.delete_device(device_id)
 
     async def dispatch_command(
         self, device_id: str, req: DeviceCommandRequest, user_id: str
@@ -274,6 +279,17 @@ class DeviceRepository:
         if device_id not in self._telemetry:
             self._telemetry[device_id] = []
         self._telemetry[device_id].append(reading)
+
+        # Mirror the device state and each numeric metric to Supabase.
+        supabase_store.save_device(dev)
+        for metric, value in metrics.items():
+            supabase_store.save_reading(
+                device_id=device_id,
+                project_id=dev.project_id,
+                metric=metric,
+                value=value,
+                recorded_at=now_str,
+            )
 
         # Check threshold rules against spec or default safety margins
         self._evaluate_thresholds(dev, metrics)

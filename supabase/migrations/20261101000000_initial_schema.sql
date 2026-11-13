@@ -135,6 +135,12 @@ ALTER TABLE public.devices ADD COLUMN IF NOT EXISTS project_id TEXT;
 -- Sync device_id with id if device_id is null
 UPDATE public.devices SET device_id = id WHERE device_id IS NULL;
 
+-- Freshly provisioned devices are 'provisioned' until the first telemetry
+-- arrives, so the constraint must allow it.
+ALTER TABLE public.devices DROP CONSTRAINT IF EXISTS devices_status_check;
+ALTER TABLE public.devices ADD CONSTRAINT devices_status_check
+    CHECK (status IN ('offline', 'online', 'error', 'provisioned'));
+
 CREATE INDEX IF NOT EXISTS idx_devices_project_id ON public.devices(project_id);
 
 -- =============================================================================

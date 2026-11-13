@@ -1,6 +1,6 @@
 import time
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -29,7 +29,33 @@ async def lifespan(app: FastAPI):
         hydrate()
     except Exception as exc:  # never block startup on the database
         logger.warning(f"Supabase hydration skipped: {exc}")
+
+    # Keep the Render-hosted broker warm. It sleeps after ~15 minutes idle, and
+    # the first publish after that fails the WebSocket handshake.
+    keepalive_task = None
+    if settings.MQTT_USE_TLS:
+        import asyncio as _asyncio
+
+        from app.services.mqtt_service import mqtt_service
+
+        async def _mqtt_keepalive():
+            while True:
+                try:
+                    await mqtt_service.publish(
+                        "system/keepalive", {"ts": time.time()}, attempts=1
+                    )
+                except Exception as exc:  # pragma: no cover - best effort
+                    logger.debug(f"MQTT keepalive failed: {exc}")
+                await _asyncio.sleep(480)
+
+        keepalive_task = _asyncio.create_task(_mqtt_keepalive())
+
     yield
+
+    if keepalive_task:
+        keepalive_task.cancel()
+        with suppress(Exception):
+            await keepalive_task
     logger.info(f"Shutting down {settings.PROJECT_NAME}")
 
 

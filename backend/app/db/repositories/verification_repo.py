@@ -5,6 +5,7 @@ from typing import Dict, Optional
 from app.agents.debug_agent import DebugAgent
 from app.core.config import settings
 from app.core.exceptions import NotFoundError
+from app.db import supabase_store
 from app.db.repositories.files_repo import files_repo
 from app.db.repositories.project_repo import project_repo
 from app.models.verification import VerificationRun
@@ -56,6 +57,7 @@ class VerificationRepository:
             firmware_binary_url=f"/api/v1/runs/{run_id}/firmware",
         )
         self._runs[run_id] = run_obj
+        supabase_store.save_verification_run(run_obj)
 
         # Record audit log
         from app.db.repositories.audit_repo import audit_repo
@@ -98,6 +100,7 @@ class VerificationRepository:
             run_obj.status = "failed"
             run_obj.logs += f"[SANDBOX ERROR] {exc}\n"
             run_obj.completed_at = datetime.now(timezone.utc).isoformat()
+            supabase_store.save_verification_run(run_obj)
             return run_obj
 
         try:
@@ -124,12 +127,19 @@ class VerificationRepository:
                     run_obj.status = "failed"
                     run_obj.logs += f"\n[ARTIFACT ERROR] firmware.bin not found: {last_error}\n"
                     run_obj.completed_at = datetime.now(timezone.utc).isoformat()
+                    supabase_store.save_verification_run(run_obj)
                     return run_obj
 
                 self._binaries[run_id] = binary
                 run_obj.status = "passed"
                 run_obj.completed_at = datetime.now(timezone.utc).isoformat()
                 project.lifecycle = "verified"
+                try:
+                    spec = project_repo.get_spec(project.id, user_id)
+                except Exception:
+                    spec = None
+                supabase_store.save_project(project, current_spec=spec)
+                supabase_store.save_verification_run(run_obj)
             else:
                 run_obj.status = "failed"
                 run_obj.completed_at = datetime.now(timezone.utc).isoformat()
@@ -143,7 +153,8 @@ class VerificationRepository:
             logger.exception("Verification run %s failed", run_id)
 
         finally:
-            # Ephemeral destruction
+            # Ephemeral destruction; always persist the terminal state.
+            supabase_store.save_verification_run(run_obj)
             await self.runner.destroy(sandbox_id)
 
         return run_obj
@@ -175,6 +186,7 @@ class VerificationRepository:
             run_obj.logs += "\n[SELF-TEST FAILED] Sensor or peripheral failed hardware self-test."
             DebugAgent.analyze_selftest_failure(run_obj.project_id, results)
 
+        supabase_store.save_verification_run(run_obj)
         return run_obj
 
 
