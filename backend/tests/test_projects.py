@@ -38,12 +38,34 @@ def test_confirm_gate_blocks_on_open_fields(client):
     p_res = client.post("/api/v1/projects", json=create_payload, headers=headers)
     project_id = p_res.json()["id"]
 
-    # Initial spec has metadata.target_deployment_date open
+    # Opening a required field blocks confirmation
+    client.patch(
+        f"/api/v1/projects/{project_id}/spec/fields",
+        json=[{"path": "metadata.target_deployment_date", "value": None, "state": "open"}],
+        headers=headers,
+    )
     confirm_res = client.post(f"/api/v1/projects/{project_id}/spec/confirm", headers=headers)
     assert confirm_res.status_code == 409
     err = confirm_res.json()
     assert "Cannot confirm spec" in err["message"]
     assert len(err["reasons"]) > 0
+
+
+def test_new_project_is_confirmable_without_edits(client):
+    headers = {"Authorization": "Bearer mock-user-eve"}
+    p_res = client.post(
+        "/api/v1/projects", json={"name": "Defaults Node", "board_id": "esp32-s3-devkitc-1"}, headers=headers
+    )
+    project_id = p_res.json()["id"]
+
+    # The deployment date is seeded as a defaulted (non-blocking) value.
+    spec = client.get(f"/api/v1/projects/{project_id}/spec", headers=headers).json()
+    date_field = spec["metadata"]["fields"]["target_deployment_date"]
+    assert date_field["value"]
+    assert date_field["state"] == "defaulted"
+
+    confirm_res = client.post(f"/api/v1/projects/{project_id}/spec/confirm", headers=headers)
+    assert confirm_res.status_code == 200
 
 
 def test_patch_field_and_successful_confirm(client):
@@ -112,7 +134,12 @@ def test_validate_spec_endpoint_and_pin_conflict_gate(client):
     p_res = client.post("/api/v1/projects", json=create_payload, headers=headers)
     project_id = p_res.json()["id"]
 
-    # First validate: open field target_deployment_date is flagged
+    # Open a required field, which is flagged by the completeness layer
+    client.patch(
+        f"/api/v1/projects/{project_id}/spec/fields",
+        json=[{"path": "metadata.target_deployment_date", "value": None, "state": "open"}],
+        headers=headers,
+    )
     val_res = client.post(f"/api/v1/projects/{project_id}/spec/validate", headers=headers)
     assert val_res.status_code == 200
     issues = val_res.json()

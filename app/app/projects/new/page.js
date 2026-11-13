@@ -28,13 +28,6 @@ const STEPS = [
   { id: 4, title: 'Interface Type' },
 ];
 
-/** ISO date ~30 days out, used as the wizard's default deployment target. */
-function defaultDeployDate() {
-  const d = new Date();
-  d.setDate(d.getDate() + 30);
-  return d.toISOString().slice(0, 10);
-}
-
 export default function NewProjectWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -43,7 +36,6 @@ export default function NewProjectWizard() {
   // Form State
   const [name, setName] = useState('');
   const [goal, setGoal] = useState('');
-  const [targetDate, setTargetDate] = useState(defaultDeployDate);
   const [selectedBoard, setSelectedBoard] = useState('esp32-s3-devkitc-1');
   const [selectedPeripherals, setSelectedPeripherals] = useState(['bme280', 'relay-module-5v']);
   const [behaviorPrompt, setBehaviorPrompt] = useState('');
@@ -136,7 +128,6 @@ export default function NewProjectWizard() {
         board_id: selectedBoard,
         interface_type: interfaceType,
         custom_peripherals: customList,
-        target_deployment_date: targetDate || undefined,
       });
 
       // Synthesize firmware, cloud backend and interface so the workspace opens
@@ -220,19 +211,6 @@ export default function NewProjectWizard() {
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
               />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Target Deployment Date
-              </label>
-              <Input
-                type="date"
-                value={targetDate}
-                onChange={(e) => setTargetDate(e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Required to confirm the spec. You can change it later in Section 1.
-              </p>
             </div>
           </CardContent>
         </Card>

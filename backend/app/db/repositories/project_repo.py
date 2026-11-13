@@ -1,6 +1,6 @@
 import copy
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.config import settings
@@ -75,21 +75,28 @@ class ProjectRepository:
         # Synthesize initial 12-section spec
         initial_spec = SpecEngine.create_default_spec(payload)
 
-        # A deployment date supplied by the wizard satisfies the one mandatory
-        # field that otherwise blocks the first confirmation.
-        if getattr(payload, "target_deployment_date", None):
-            fields = initial_spec.setdefault("metadata", {}).setdefault("fields", {})
-            field = fields.get("target_deployment_date")
-            if field is None:
-                fields["target_deployment_date"] = {
-                    "value": payload.target_deployment_date,
-                    "state": "confirmed",
-                    "source": "user",
-                }
-            else:
-                field["value"] = payload.target_deployment_date
-                field["state"] = "confirmed"
-                field["source"] = "user"
+        # A wizard-supplied date overrides the default; otherwise seed a
+        # placeholder so the spec is immediately confirmable. It stays
+        # editable in Section 1 as a "defaulted" field.
+        deployment = getattr(payload, "target_deployment_date", None)
+        if deployment:
+            deployment_state, deployment_source = "confirmed", "user"
+        else:
+            deployment = (datetime.now(timezone.utc) + timedelta(days=30)).date().isoformat()
+            deployment_state, deployment_source = "defaulted", "platform_default"
+
+        fields = initial_spec.setdefault("metadata", {}).setdefault("fields", {})
+        field = fields.get("target_deployment_date")
+        if field is None:
+            fields["target_deployment_date"] = {
+                "value": deployment,
+                "state": deployment_state,
+                "source": deployment_source,
+            }
+        else:
+            field["value"] = deployment
+            field["state"] = deployment_state
+            field["source"] = deployment_source
 
         self._specs[project_id] = initial_spec
 
