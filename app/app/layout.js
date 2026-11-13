@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -20,6 +20,7 @@ import { Tooltip } from '@/components/ui/tooltip';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { createClient } from '@/lib/supabase/client';
 import { useUIStore } from '@/lib/store/useUIStore';
+import { loadIdentity, initialsOf } from '@/lib/profile';
 
 export default function AppLayout({ children }) {
   const pathname = usePathname();
@@ -27,6 +28,43 @@ export default function AppLayout({ children }) {
   const { sidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
 
   const isMock = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
+
+  // Real signed-in identity for the sidebar footer (no placeholder names).
+  const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+
+  useEffect(() => {
+    if (isMock) {
+      setUserName('Demo Engineer');
+      setUserRole('Mock workspace');
+      setUserEmail('demo@deviceStack.local');
+      return undefined;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const identity = await loadIdentity();
+        if (!identity || cancelled) return;
+        setUserName(identity.name);
+        setUserRole(identity.role);
+        setUserEmail(identity.email);
+      } catch {
+        // Keep the sidebar usable even if the profile read fails.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isMock]);
+
+  const displayName = userName || 'Account';
+  const displayRole = userRole || (userEmail ? userEmail : 'Signed in');
+  const userInitials = initialsOf(displayName) || '?';
+  const userTooltip = `${displayName} (${displayRole})`;
+
   const isProjectWorkspace =
     pathname.startsWith('/app/projects/') &&
     !pathname.startsWith('/app/projects/new');
@@ -133,12 +171,12 @@ export default function AppLayout({ children }) {
               </div>
             </Tooltip>
 
-            <Tooltip text="Sarah Chen (Hardware Engineer)">
+            <Tooltip text={userTooltip}>
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary select-none"
-                aria-label="User avatar: Sarah Chen"
+                aria-label={`User avatar: ${displayName}`}
               >
-                SC
+                {userInitials}
               </div>
             </Tooltip>
           </div>
@@ -291,11 +329,11 @@ export default function AppLayout({ children }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5 truncate">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
-                  SC
+                  {userInitials}
                 </div>
                 <div className="truncate text-left">
-                  <div className="truncate text-xs font-semibold text-foreground">Sarah Chen</div>
-                  <div className="truncate text-[10px] text-muted-foreground">Hardware Engineer</div>
+                  <div className="truncate text-xs font-semibold text-foreground">{displayName}</div>
+                  <div className="truncate text-[10px] text-muted-foreground">{displayRole}</div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -314,9 +352,9 @@ export default function AppLayout({ children }) {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
-              <Tooltip text="Sarah Chen (Hardware Engineer)">
+              <Tooltip text={userTooltip}>
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary cursor-default">
-                  SC
+                  {userInitials}
                 </div>
               </Tooltip>
               <Tooltip text="Toggle theme">
@@ -354,9 +392,6 @@ export default function AppLayout({ children }) {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <div className="text-sm font-medium text-muted-foreground hidden sm:block">
-              Server: <span className="text-foreground font-semibold">Online</span>
-            </div>
           </div>
 
           <div className="flex items-center gap-3">

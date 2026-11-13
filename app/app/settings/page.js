@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { loadIdentity } from '@/lib/profile';
 import {
   Settings,
   User,
@@ -22,9 +23,27 @@ import {
 export default function SettingsPage() {
   const router = useRouter();
 
-  const [fullName, setFullName] = useState('Sarah Chen');
-  const [role, setRole] = useState('Hardware Systems Engineer');
-  const [email] = useState('sarah.chen@hardwaretech.io');
+  const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState('');
+  const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const identity = await loadIdentity();
+        if (!identity || cancelled) return;
+        setFullName(identity.name === 'Account' ? '' : identity.name);
+        setRole(identity.role === 'Signed in' ? '' : identity.role);
+        setEmail(identity.email);
+      } catch {
+        // Leave the fields empty if the profile cannot be read.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // API Token state
   const [apiToken, setApiToken] = useState('iot_live_9a8b7c6d5e4f3a2b1c0d_prod');
