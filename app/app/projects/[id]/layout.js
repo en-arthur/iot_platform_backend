@@ -16,7 +16,6 @@ import {
   Radio,
   Cpu,
   ChevronRight,
-  Check,
   Lock,
   CheckCircle2,
   AlertTriangle,
@@ -24,15 +23,6 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
-
-const LIFECYCLE_STEPS = [
-  { id: 'draft', label: 'Draft' },
-  { id: 'validated', label: 'Validated' },
-  { id: 'confirmed', label: 'Confirmed' },
-  { id: 'generated', label: 'Generated' },
-  { id: 'verified', label: 'Verified' },
-  { id: 'deployed', label: 'Deployed' },
-];
 
 export default function ProjectWorkspaceLayout({ children, params }) {
   const unwrappedParams = use(params);
@@ -87,14 +77,6 @@ export default function ProjectWorkspaceLayout({ children, params }) {
 
   // RULE: Never show "Deployed" while there are open fields or errors.
   const hasBlockingErrorsOrOpenFields = blockingIssues.length > 0 || openFieldsCount > 0;
-  const effectiveLifecycle = hasBlockingErrorsOrOpenFields
-    ? 'draft'
-    : project?.lifecycle || 'draft';
-
-  const currentStepIndex = Math.max(
-    0,
-    LIFECYCLE_STEPS.findIndex((s) => s.id === effectiveLifecycle)
-  );
 
   const isConfirmDisabled = hasBlockingErrorsOrOpenFields || isSaving;
   const isAlreadyConfirmed =
@@ -258,7 +240,7 @@ export default function ProjectWorkspaceLayout({ children, params }) {
 
       {/* =====================================================================
           HEADER ROW 2 (about 40px height)
-          Navigation Tabs on left; Compact Lifecycle Stepper on right.
+          Navigation Tabs (Spec model / Code / Verification / Flash / Live).
           ===================================================================== */}
       <div className="h-[40px] min-h-[40px] max-h-[40px] border-b border-border bg-card/60 px-3 sm:px-4 flex items-center justify-between gap-4 shrink-0 overflow-hidden">
         {/* Tabs on Left */}
@@ -291,69 +273,6 @@ export default function ProjectWorkspaceLayout({ children, params }) {
             );
           })}
         </nav>
-
-        {/* Compact Lifecycle Stepper on Right (never scrolls or clips) */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Desktop full stepper */}
-          <ol
-            aria-label="Lifecycle progress"
-            className="hidden lg:flex items-center gap-1 list-none p-0 m-0"
-          >
-            {LIFECYCLE_STEPS.map((step, idx) => {
-              const isPast = idx < currentStepIndex;
-              const isCurrent = idx === currentStepIndex;
-              const isUpcoming = idx > currentStepIndex;
-
-              return (
-                <li
-                  key={step.id}
-                  aria-current={isCurrent ? 'step' : undefined}
-                  className="flex items-center gap-1"
-                >
-                  <div
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors ${
-                      isCurrent
-                        ? 'bg-primary text-primary-foreground ring-2 ring-primary/40 shadow-xs'
-                        : isPast
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                        : 'text-muted-foreground/50'
-                    }`}
-                  >
-                    {isPast ? (
-                      <Check className="h-3 w-3 stroke-[3]" aria-hidden="true" />
-                    ) : (
-                      <span className="text-[10px] font-mono">{idx + 1}</span>
-                    )}
-                    <span>{step.label}</span>
-                  </div>
-
-                  {idx < LIFECYCLE_STEPS.length - 1 && (
-                    <span className="text-muted-foreground/40 text-[10px] select-none mx-0.5">
-                      ›
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-
-          {/* Tablet/Mobile Compact Stepper: "Draft - step 1 of 6" + 6 small bars */}
-          <div className="flex lg:hidden items-center gap-2 text-xs font-medium text-muted-foreground">
-            <span className="capitalize font-semibold text-foreground">
-              {LIFECYCLE_STEPS[currentStepIndex]?.label} — step {currentStepIndex + 1} of 6
-            </span>
-            <div className="flex items-center gap-1" aria-hidden="true">
-              {LIFECYCLE_STEPS.map((_, i) => (
-                <span
-                  key={i}
-                  className={`h-1.5 w-2.5 rounded-full ${
-                    i <= currentStepIndex ? 'bg-primary' : 'bg-muted-foreground/30'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* =====================================================================
