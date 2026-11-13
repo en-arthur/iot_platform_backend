@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from app.core.config import settings
 from app.core.exceptions import NotFoundError
+from app.db import supabase_store
 from app.db.repositories.project_repo import project_repo
 from app.models.proposals import ProposalResolutionResponse, SpecChangeItem, SpecProposal
 from app.models.spec import FieldPatchItem
@@ -106,15 +107,28 @@ class ProposalRepository:
 
         # Archive version record
         spec = project_repo.get_spec(project_id, user_id)
+        summary = f"Applied proposal {proposal_id}: {proposal.summary}"
+        author = "AI Assistant (Approved by Engineer)"
         project_repo._versions[project_id].append(
             {
                 "version_number": new_version,
                 "created_at": datetime.now(timezone.utc).isoformat(),
-                "author": "AI Assistant (Approved by Engineer)",
-                "summary": f"Applied proposal {proposal_id}: {proposal.summary}",
+                "author": author,
+                "summary": summary,
                 "lifecycle": project.lifecycle,
                 "spec": spec,
             }
+        )
+
+        # Mirror the approval to Supabase so the new version and the bumped
+        # project version survive a redeploy.
+        supabase_store.save_project(project, current_spec=spec)
+        supabase_store.save_spec_version(
+            project_id=project_id,
+            version_number=new_version,
+            spec=spec,
+            author=author,
+            summary=summary,
         )
 
         return ProposalResolutionResponse(
