@@ -485,7 +485,9 @@ export default function NewProjectWizard() {
         {currentStep < 4 ? (
           <Button
             onClick={() => setCurrentStep((prev) => prev + 1)}
+            disabled={behaviorLoading}
             className="gap-2"
+            title={behaviorLoading ? 'Waiting for the behavior draft to finish' : undefined}
           >
             <span>Next Step</span>
             <ArrowRight className="h-4 w-4" />

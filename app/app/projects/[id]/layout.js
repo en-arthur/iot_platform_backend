@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   FileText,
-  History,
   Code2,
   CheckCircle,
   Zap,
@@ -126,7 +125,6 @@ export default function ProjectWorkspaceLayout({ children, params }) {
 
   const tabs = [
     { label: 'Spec model', href: `/app/projects/${projectId}`, exact: true, icon: FileText },
-    { label: 'Versions', href: `/app/projects/${projectId}/versions`, icon: History },
     { label: 'Code', href: `/app/projects/${projectId}/code`, icon: Code2 },
     { label: 'Verification', href: `/app/projects/${projectId}/verify`, icon: CheckCircle },
     { label: 'Flash', href: `/app/projects/${projectId}/flash`, icon: Zap },
