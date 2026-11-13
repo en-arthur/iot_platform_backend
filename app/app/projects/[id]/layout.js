@@ -243,11 +243,11 @@ export default function ProjectWorkspaceLayout({ children, params }) {
           Navigation Tabs (Spec model / Code / Verification / Flash / Live).
           ===================================================================== */}
       <div className="h-[40px] min-h-[40px] max-h-[40px] border-b border-border bg-card/60 px-3 sm:px-4 flex items-center justify-between gap-4 shrink-0 overflow-hidden">
-        {/* Tabs on Left */}
+        {/* Tabs span the full width; they scroll only on very narrow screens */}
         <nav
           role="tablist"
           aria-label="Workspace views"
-          className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0 h-full"
+          className="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1 w-full min-w-0 h-full"
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -261,7 +261,7 @@ export default function ProjectWorkspaceLayout({ children, params }) {
                 href={tab.href}
                 role="tab"
                 aria-selected={isActive}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
+                className={`flex flex-1 items-center justify-center gap-1.5 px-2.5 py-1 min-w-max rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
                   isActive
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
