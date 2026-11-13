@@ -45,6 +45,7 @@ def _request(
     params: Optional[Dict[str, str]] = None,
     json: Any = None,
     prefer: Optional[str] = None,
+    strict: bool = False,
 ) -> Any:
     cfg = _config()
     if not cfg:
@@ -80,6 +81,10 @@ def _request(
             response.status_code,
             response.text[:300],
         )
+        if strict:
+            raise RuntimeError(
+                f"Supabase {method} {table} failed with HTTP {response.status_code}"
+            )
         return None
 
     if not response.content:
@@ -108,13 +113,26 @@ def save_project(project: Any, current_spec: Optional[Dict[str, Any]] = None) ->
     if current_spec is not None:
         payload["current_spec"] = current_spec
 
-    _request(
-        "POST",
-        "projects",
-        params={"on_conflict": "id"},
-        json=payload,
-        prefer="resolution=merge-duplicates,return=minimal",
-    )
+    try:
+        _request(
+            "POST",
+            "projects",
+            params={"on_conflict": "id"},
+            json=payload,
+            prefer="resolution=merge-duplicates,return=minimal",
+            strict=True,
+        )
+    except RuntimeError:
+        # Older schemas do not have projects.current_spec yet; still persist the
+        # project row so nothing is lost, and pick the spec up from versions.
+        payload.pop("current_spec", None)
+        _request(
+            "POST",
+            "projects",
+            params={"on_conflict": "id"},
+            json=payload,
+            prefer="resolution=merge-duplicates,return=minimal",
+        )
 
 
 def delete_project(project_id: str) -> None:
