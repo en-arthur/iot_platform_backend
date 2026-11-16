@@ -9,10 +9,12 @@ def test_health_observability(client):
     data = response.json()
     assert data["status"] == "healthy"
     assert "components" in data
-    assert data["components"]["database"] == "operational"
-    assert data["components"]["e2b_sandbox"] == "operational"
-    assert data["components"]["mqtt_broker"] == "operational"
-    assert data["components"]["cloud_service"] == "operational"
+    components = data["components"]
+    # Components report configuration, not a guessed pass.
+    for name in ("database", "mqtt_broker", "e2b_sandbox", "cloud_service"):
+        assert name in components
+    assert components["database"] in ("operational", "memory")
+    assert components["e2b_sandbox"] in ("configured", "not_configured")
 
 
 def test_rate_limit_headers(client, create_test_token):
