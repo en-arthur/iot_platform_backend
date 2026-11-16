@@ -15,6 +15,12 @@ class PinCapability(BaseModel):
     voltage_v: float = 3.3
     description: Optional[str] = None
 
+    # The MCU GPIO number this header pin drives. Code generation emits this
+    # number, never the silkscreen label, so "D2" and "GPIO4" are the same pin.
+    gpio: Optional[int] = None
+    # Alternative labels users may type or existing specs may contain.
+    aliases: List[str] = Field(default_factory=list)
+
 
 class BoardSpecs(BaseModel):
     # Required: a board that forgets to declare its flash would otherwise
@@ -48,7 +54,31 @@ class Board(BaseModel):
 
     specs: BoardSpecs
     pin_map: Dict[str, PinCapability]
+
+    # Role -> pin label, used to seed a new project's spec. Kept on the board so
+    # code generation never falls back to ESP32 pin numbers on another MCU.
+    default_pins: Dict[str, str] = Field(default_factory=dict)
     tested_notes: Optional[str] = None
+
+    def resolve_pin(self, label: Any) -> Optional[str]:
+        """Canonical pin_map key for a user-supplied label ("D2", "gpio4", "4")."""
+        if label is None:
+            return None
+        needle = str(label).strip().lower()
+        if not needle:
+            return None
+        for key, pin in self.pin_map.items():
+            names = {key.lower(), pin.name.lower(), *(a.lower() for a in pin.aliases)}
+            if pin.gpio is not None:
+                names.add(str(pin.gpio))
+            if needle in names:
+                return key
+        return None
+
+    def pin_number(self, label: Any) -> Optional[int]:
+        """GPIO number for a label, or None when the board does not have it."""
+        key = self.resolve_pin(label)
+        return self.pin_map[key].gpio if key else None
 
 
 class Peripheral(BaseModel):

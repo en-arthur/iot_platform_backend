@@ -26,8 +26,25 @@ def test_get_board_by_id(client):
     assert data["vendor"] == "Espressif"
     assert data["specs"]["clock_mhz"] == 240
     assert "GPIO4" in data["pin_map"]
-    assert "I2C_SDA" in data["pin_map"]["GPIO4"]["capabilities"]
-    assert data["pin_map"]["GPIO0"]["is_bootstrapping"] is True
+    assert "ADC1_CH3" in data["pin_map"]["GPIO4"]["capabilities"]
+    assert data["pin_map"]["GPIO4"]["gpio"] == 4
+    assert data["default_pins"]["i2c_sda"] == "GPIO4"
+    assert data["pin_map"]["GPIO46"]["is_bootstrapping"] is True
+
+
+def test_second_board_family_is_selectable(client):
+    response = client.get("/api/v1/library/boards")
+    assert response.status_code == 200
+    board_ids = [b["id"] for b in response.json()]
+    assert "nodemcuv2" in board_ids
+
+    node = client.get("/api/v1/library/boards/nodemcuv2").json()
+    assert node["platform"] == "espressif8266"
+    assert node["pio_board"] == "nodemcuv2"
+    assert node["pin_naming"] == "D"
+    assert node["default_pins"]["i2c_sda"] == "D2"
+    assert node["pin_map"]["D2"]["gpio"] == 4
+    assert node["pin_map"]["SD_CLK"]["is_reserved"] is True
 
 
 def test_get_board_not_found(client):

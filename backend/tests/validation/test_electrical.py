@@ -27,11 +27,11 @@ def test_electrical_detects_reserved_pin_assignment():
     validator = ElectricalValidator()
     board = library_repo.get_board("esp32-s3-devkitc-1")
 
-    # GPIO18 is reserved for Native USB D-
+    # GPIO19 is the native USB D- pin on the ESP32-S3
     spec = {
         "peripherals": {
             "fields": {
-                "sensor_sda": {"value": "GPIO18", "state": "confirmed"},
+                "sensor_sda": {"value": "GPIO19", "state": "confirmed"},
             }
         }
     }

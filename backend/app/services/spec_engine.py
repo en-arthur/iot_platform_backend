@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional, Set, Tuple
+from app.db.repositories.library_repo import library_repo
 from app.models.project import ProjectCreate
 from app.models.spec import (
     ProjectSpec,
@@ -32,6 +33,13 @@ class SpecEngine:
     @staticmethod
     def create_default_spec(project_input: ProjectCreate, user_name: str = "Hardware Engineer") -> Dict[str, Any]:
         """Synthesizes the initial 12-section specification single source of truth."""
+        # Pins and clock come from the selected board. Hardcoding ESP32 numbers
+        # here is how a NodeMCU project used to arrive with GPIO9/GPIO10, which
+        # are the ESP8266 flash bus.
+        board = library_repo.get_board(project_input.board_id)
+        defaults = board.default_pins if board else {}
+        clock_mhz = board.specs.clock_mhz if board else 240
+
         spec = {
             "metadata": {
                 "title": "1. Project Metadata",
@@ -68,7 +76,7 @@ class SpecEngine:
                         "source": "library",
                     },
                     "mcu_clock_mhz": {
-                        "value": 240,
+                        "value": clock_mhz,
                         "state": "defaulted",
                         "source": "library",
                     },
@@ -93,12 +101,12 @@ class SpecEngine:
                 "title": "3. Peripherals & Pin Multiplexing",
                 "fields": {
                     "bme280_sda_pin": {
-                        "value": "GPIO4",
+                        "value": defaults.get("i2c_sda", "GPIO4"),
                         "state": "confirmed",
                         "source": "user",
                     },
                     "bme280_scl_pin": {
-                        "value": "GPIO5",
+                        "value": defaults.get("i2c_scl", "GPIO5"),
                         "state": "confirmed",
                         "source": "user",
                     },
@@ -108,12 +116,12 @@ class SpecEngine:
                         "source": "library",
                     },
                     "fan_relay_pin": {
-                        "value": "GPIO9",
+                        "value": defaults.get("relay", "GPIO9"),
                         "state": "confirmed",
                         "source": "user",
                     },
                     "button_pin": {
-                        "value": "GPIO10",
+                        "value": defaults.get("button", "GPIO10"),
                         "state": "confirmed",
                         "source": "user",
                     },

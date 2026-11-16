@@ -94,3 +94,160 @@ def test_library_api_exposes_the_build_recipe(client):
     assert data["env_name"] == "esp32s3"
     assert data["connectivity"] == "wifi"
     assert data["pin_naming"] == "GPIO"
+
+NODEMCU_PLATFORMIO_INI_HEADER = """; PlatformIO Project Configuration for Arduino Framework
+; Target: nodemcuv2
+; Single-source-of-truth project spec v1.0
+
+[platformio]
+default_envs = nodemcuv2
+
+[env:nodemcuv2]
+platform = espressif8266
+board = nodemcuv2
+framework = arduino
+monitor_speed = 115200
+"""
+
+
+def test_nodemcu_uses_the_esp8266_platform():
+    ini = _platformio_ini("nodemcuv2")
+    assert ini.startswith(NODEMCU_PLATFORMIO_INI_HEADER)
+    assert "espressif32" not in ini
+
+
+def test_spec_pin_defaults_come_from_the_board():
+    esp = _spec("esp32-s3-devkitc-1")
+    node = _spec("nodemcuv2")
+    esp_fields = esp["peripherals"]["fields"]
+    node_fields = node["peripherals"]["fields"]
+    assert esp_fields["bme280_sda_pin"]["value"] == "GPIO4"
+    assert node_fields["bme280_sda_pin"]["value"] == "D2"
+    assert node_fields["bme280_scl_pin"]["value"] == "D1"
+    assert node_fields["fan_relay_pin"]["value"] == "D5"
+    assert node_fields["button_pin"]["value"] == "D6"
+    assert node["hardware"]["fields"]["mcu_clock_mhz"]["value"] == 80
+
+
+def test_generated_config_uses_resolved_gpio_numbers():
+    files = {
+        f.path: f.content
+        for f in ArduinoFirmwareGenerator.generate("proj-profile", 1, _spec("nodemcuv2"))
+    }
+    config = files["firmware/include/config.h"]
+    assert "#define PIN_I2C_SDA         4  // D2" in config
+    assert "#define PIN_I2C_SCL         5  // D1" in config
+    assert "#define PIN_FAN_RELAY       14  // D5" in config
+    assert "#define PIN_MANUAL_BUTTON   12  // D6" in config
+    assert "#define PLATFORM_CONNECTIVITY   \"wifi\"" in config
+
+
+def test_nodemcu_firmware_includes_the_esp8266_stack_and_guards_deep_sleep():
+    files = {
+        f.path: f.content
+        for f in ArduinoFirmwareGenerator.generate("proj-profile", 1, _spec("nodemcuv2"))
+    }
+    main = files["firmware/src/main.cpp"]
+    assert "#include <ESP8266WiFi.h>" in main
+    assert "#if defined(ESP32)" in main
+    assert "ESP.deepSleep" in main
+    # The ESP32-only sleep API must not be called outside its guard.
+    guard_start = main.index("#if defined(ESP32)")
+    esptool_call = main.index("esp_sleep_enable_timer_wakeup")
+    esp8266_branch = main.index("#elif defined(ESP8266)")
+    assert guard_start < esptool_call < esp8266_branch
+
+
+def test_unresolvable_pin_is_rejected_with_the_board_pin_list():
+    spec = _spec("nodemcuv2")
+    spec["peripherals"]["fields"]["bme280_sda_pin"]["value"] = "GPIO99"
+    with pytest.raises(ValidationError) as exc:
+        ArduinoFirmwareGenerator.generate("proj-profile", 1, spec)
+    message = str(exc.value)
+    assert "GPIO99" in message
+    assert "NodeMCU" in message
+    assert "D2" in message
+
+
+def test_reserved_pin_is_rejected_by_the_generator():
+    spec = _spec("esp32-s3-devkitc-1")
+    spec["peripherals"]["fields"]["bme280_sda_pin"]["value"] = "GPIO19"
+    with pytest.raises(ValidationError) as exc:
+        ArduinoFirmwareGenerator.generate("proj-profile", 1, spec)
+    assert "reserved" in str(exc.value)
+
+
+def test_electrical_validator_rejects_unknown_pins():
+    from app.db.repositories.library_repo import library_repo
+    from app.validation.electrical import ElectricalValidator
+
+    board = library_repo.get_board("nodemcuv2")
+    spec = {"peripherals": {"fields": {"bme280_sda_pin": {"value": "GPIO99"}}}}
+    issues = ElectricalValidator().validate(spec, board=board)
+    assert len(issues) == 1
+    assert issues[0].severity == "error"
+    assert "does not exist" in issues[0].message
+
+
+def test_electrical_validator_catches_aliased_pin_collisions():
+    from app.db.repositories.library_repo import library_repo
+    from app.validation.electrical import ElectricalValidator
+
+    board = library_repo.get_board("nodemcuv2")
+    # D2 and GPIO4 are the same physical pin on a NodeMCU.
+    spec = {
+        "peripherals": {
+            "fields": {
+                "bme280_sda_pin": {"value": "D2"},
+                "button_pin": {"value": "GPIO4"},
+            }
+        }
+    }
+    issues = ElectricalValidator().validate(spec, board=board)
+    collisions = [i for i in issues if "collision" in i.message.lower()]
+    assert len(collisions) == 2
+
+def test_ethernet_board_switches_the_generated_transport():
+    from app.db.repositories.library_repo import library_repo
+    from app.models.library import Board, BoardSpecs
+
+    board = Board(
+        id="test-ethernet-node",
+        name="Test Ethernet Node",
+        vendor="Test",
+        mcu="Test MCU",
+        status="unverified",
+        platform="atmelavr",
+        pio_board="uno",
+        env_name="uno",
+        connectivity="ethernet",
+        pin_naming="D",
+        binary_ext=".hex",
+        upload_protocol="avrdude",
+        specs=BoardSpecs(flash_mb=32.0),
+        pin_map={
+            "D2": {"name": "D2", "gpio": 2, "capabilities": ["GPIO"]},
+            "D3": {"name": "D3", "gpio": 3, "capabilities": ["GPIO"]},
+            "D4": {"name": "D4", "gpio": 4, "capabilities": ["GPIO"]},
+            "D5": {"name": "D5", "gpio": 5, "capabilities": ["GPIO"]},
+        },
+        default_pins={"i2c_sda": "D2", "i2c_scl": "D3", "relay": "D4", "button": "D5"},
+    )
+    library_repo._boards[board.id] = board
+    try:
+        assert library_repo.validate_catalog() == []
+        files = {
+            f.path: f.content
+            for f in ArduinoFirmwareGenerator.generate(
+                "proj-profile", 1, _spec(board.id)
+            )
+        }
+        config = files["firmware/include/config.h"]
+        main = files["firmware/src/main.cpp"]
+        assert "#define PLATFORM_ETHERNET       1" in config
+        assert "#define ETHERNET_CS_PIN         10" in config
+        assert "#include <Ethernet.h>" in main
+        assert "EthernetClient networkClient;" in main
+        assert "Ethernet.begin(ETHERNET_MAC)" in main
+    finally:
+        del library_repo._boards[board.id]
