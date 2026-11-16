@@ -251,3 +251,26 @@ def test_ethernet_board_switches_the_generated_transport():
         assert "Ethernet.begin(ETHERNET_MAC)" in main
     finally:
         del library_repo._boards[board.id]
+
+def test_generate_rejects_an_unknown_pin_before_streaming(client):
+    headers = {"Authorization": "Bearer mock-user-pin-preflight"}
+    created = client.post(
+        "/api/v1/projects",
+        json={"name": "Pin Preflight Node", "board_id": "nodemcuv2"},
+        headers=headers,
+    )
+    assert created.status_code == 201
+    pid = created.json()["id"]
+    try:
+        patched = client.patch(
+            f"/api/v1/projects/{pid}/spec/fields",
+            json=[{"path": "peripherals.bme280_sda_pin", "value": "GPIO99"}],
+            headers=headers,
+        )
+        assert patched.status_code == 200
+
+        response = client.post(f"/api/v1/projects/{pid}/generate", headers=headers)
+        assert response.status_code == 422
+        assert "GPIO99" in response.text
+    finally:
+        client.delete(f"/api/v1/projects/{pid}", headers=headers)

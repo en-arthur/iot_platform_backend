@@ -5,35 +5,40 @@ from app.models.files import GeneratedFile
 
 
 class ArduinoFirmwareGenerator:
-    """Generates complete Arduino C++ project targeting ESP32-S3 / RP2040 microcontrollers.
-    Embeds verified peripheral drivers, protected user code regions, and MQTT JSON telemetry.
+    """Generates an Arduino C++ project for any board in the hardware library.
+
+    Target, pins and transport are read from the board record, so the same
+    generator serves ESP32, ESP8266 and future families.
     """
 
-    @classmethod
-    def generate(cls, project_id: str, version: int, spec: Dict[str, Any]) -> List[GeneratedFile]:
-        files: List[GeneratedFile] = []
+    # Spec field -> board default_pins role.
+    PIN_ROLES = (
+        ("bme280_sda_pin", "i2c_sda"),
+        ("bme280_scl_pin", "i2c_scl"),
+        ("fan_relay_pin", "relay"),
+        ("button_pin", "button"),
+    )
 
+    @classmethod
+    def resolve_target(cls, spec: Dict[str, Any]) -> Dict[str, Any]:
+        """Resolve board, pins and transport for a spec.
+
+        Raises ValidationError for an unknown board, a pin the board does not
+        have, a reserved pin, or a board without an IP link. Callers use this
+        before streaming so those failures are clean 422s.
+        """
         hw = spec.get("hardware", {}).get("fields", {})
         periph = spec.get("peripherals", {}).get("fields", {})
-        behavior = spec.get("behavior", {}).get("fields", {})
-        cloud = spec.get("cloud_backend", {}).get("fields", {})
-        data_model = spec.get("data_model", {}).get("fields", {})
 
         board_id = str(hw.get("board_id", {}).get("value") or "esp32-s3-devkitc-1")
-
-        # The board record owns the build recipe. A board id that is not in the
-        # hardware library must fail loudly instead of quietly emitting
-        # ESP32-S3 configuration for a different target.
         board = library_repo.get_board(board_id)
         if board is None:
             raise ValidationError(
                 f"Board '{board_id}' is not in the hardware library; add it before generating firmware."
             )
 
-        deep_sleep_enabled = bool(hw.get("deep_sleep_enabled", {}).get("value", False))
-        deep_sleep_sec = int(hw.get("deep_sleep_interval_seconds", {}).get("value") or 60)
-
-        def resolve_pin(field: str, role: str) -> Any:
+        pins = {}
+        for field, role in cls.PIN_ROLES:
             label = str(
                 periph.get(field, {}).get("value") or board.default_pins.get(role) or ""
             )
@@ -53,14 +58,7 @@ class ArduinoFirmwareGenerator:
                     f"Pin '{key}' for {field} is reserved on {board.name}: "
                     f"{pin.description or ', '.join(pin.capabilities)}"
                 )
-            return pin
-
-        sda = resolve_pin("bme280_sda_pin", "i2c_sda")
-        scl = resolve_pin("bme280_scl_pin", "i2c_scl")
-        relay = resolve_pin("fan_relay_pin", "relay")
-        button = resolve_pin("button_pin", "button")
-        sda_pin, scl_pin = sda.gpio, scl.gpio
-        relay_pin, button_pin = relay.gpio, button.gpio
+            pins[role] = pin
 
         # MQTT needs an IP link. BLE-only or linkless boards cannot run this
         # firmware, so fail here rather than emitting code that cannot connect.
@@ -69,7 +67,34 @@ class ArduinoFirmwareGenerator:
                 f"{board.name} has connectivity '{board.connectivity}'; "
                 "MQTT firmware requires Wi-Fi or Ethernet."
             )
-        is_ethernet = board.connectivity == "ethernet"
+
+        return {
+            "board": board,
+            "pins": pins,
+            "is_ethernet": board.connectivity == "ethernet",
+        }
+
+    @classmethod
+    def generate(cls, project_id: str, version: int, spec: Dict[str, Any]) -> List[GeneratedFile]:
+        files: List[GeneratedFile] = []
+
+        hw = spec.get("hardware", {}).get("fields", {})
+        behavior = spec.get("behavior", {}).get("fields", {})
+        cloud = spec.get("cloud_backend", {}).get("fields", {})
+        data_model = spec.get("data_model", {}).get("fields", {})
+
+        target = cls.resolve_target(spec)
+        board = target["board"]
+        pins = target["pins"]
+        sda, scl = pins["i2c_sda"], pins["i2c_scl"]
+        relay, button = pins["relay"], pins["button"]
+        sda_pin, scl_pin = sda.gpio, scl.gpio
+        relay_pin, button_pin = relay.gpio, button.gpio
+
+        deep_sleep_enabled = bool(hw.get("deep_sleep_enabled", {}).get("value", False))
+        deep_sleep_sec = int(hw.get("deep_sleep_interval_seconds", {}).get("value") or 60)
+
+        is_ethernet = target["is_ethernet"]
         ethernet_config = (
             """// W5x00 shield wiring; adjust these to the pins used on the board.
 #define ETHERNET_CS_PIN         10
