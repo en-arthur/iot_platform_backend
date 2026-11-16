@@ -8,6 +8,7 @@ projects survive Render restarts and appear in the Supabase tables.
 Writes are best-effort: a database outage never fails an API request.
 """
 
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -313,12 +314,143 @@ def save_verification_run(run: Any) -> None:
             "sandbox_provider": run.sandbox_provider,
             "logs": run.logs,
             "firmware_binary_url": run.firmware_binary_url,
-            "selftest_results": run.selftest_results,
             "created_at": run.created_at,
             "completed_at": run.completed_at,
         },
         prefer="resolution=merge-duplicates,return=minimal",
     )
+
+
+# ---------------------------------------------------------------------------
+# Firmware artifact storage
+# ---------------------------------------------------------------------------
+# Artifacts are multi-megabyte binaries, so they live in a private Supabase
+# Storage bucket instead of Postgres. A small metadata object is written next
+# to the payload so listing a run never has to download the firmware.
+
+ARTIFACT_BUCKET = "firmware-artifacts"
+_MAX_ARTIFACT_BYTES = 50 * 1024 * 1024
+
+
+def _storage_headers(key: str) -> Dict[str, str]:
+    return {"apikey": key, "Authorization": f"Bearer {key}"}
+
+
+def _ensure_artifact_bucket(url: str, key: str) -> bool:
+    """Create the private artifact bucket if it does not exist yet."""
+    try:
+        with httpx.Client(timeout=8.0) as client:
+            existing = client.get(
+                f"{url}/storage/v1/bucket/{ARTIFACT_BUCKET}",
+                headers=_storage_headers(key),
+            )
+            if existing.status_code < 300:
+                return True
+            created = client.post(
+                f"{url}/storage/v1/bucket",
+                headers={**_storage_headers(key), "Content-Type": "application/json"},
+                json={
+                    "id": ARTIFACT_BUCKET,
+                    "name": ARTIFACT_BUCKET,
+                    "public": False,
+                    "file_size_limit": _MAX_ARTIFACT_BYTES,
+                },
+            )
+            return created.status_code < 300 or "already exists" in created.text.lower()
+    except Exception as exc:  # pragma: no cover - network failure path
+        logger.warning("Supabase storage bucket check failed: %s", exc)
+        return False
+
+
+def _storage_upload(path: str, data: bytes, content_type: str) -> bool:
+    cfg = _config()
+    if not cfg:
+        return False
+    url, key = cfg
+
+    for attempt in range(2):
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(
+                    f"{url}/storage/v1/object/{ARTIFACT_BUCKET}/{path}",
+                    headers={
+                        **_storage_headers(key),
+                        "Content-Type": content_type,
+                        "x-upsert": "true",
+                    },
+                    content=data,
+                )
+        except Exception as exc:  # pragma: no cover - network failure path
+            logger.warning("Supabase storage upload %s failed: %s", path, exc)
+            return False
+
+        if response.status_code < 300:
+            return True
+
+        if attempt == 0 and (
+            "bucket" in response.text.lower()
+            or response.status_code in (400, 404)
+        ):
+            if _ensure_artifact_bucket(url, key):
+                continue
+
+        logger.warning(
+            "Supabase storage upload %s -> HTTP %s: %s",
+            path,
+            response.status_code,
+            response.text[:300],
+        )
+        return False
+    return False
+
+
+def _storage_download(path: str) -> Optional[bytes]:
+    cfg = _config()
+    if not cfg:
+        return None
+    url, key = cfg
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            response = client.get(
+                f"{url}/storage/v1/object/{ARTIFACT_BUCKET}/{path}",
+                headers=_storage_headers(key),
+            )
+    except Exception as exc:  # pragma: no cover - network failure path
+        logger.warning("Supabase storage download %s failed: %s", path, exc)
+        return None
+    if response.status_code == 200:
+        return response.content
+    return None
+
+
+def save_verification_artifact(run_id: str, meta: Dict[str, Any], payload: bytes) -> bool:
+    """Best-effort persist of the artifact so it survives a restart."""
+    meta_ok = _storage_upload(
+        f"runs/{run_id}/meta.json",
+        json.dumps(meta).encode("utf-8"),
+        "application/json",
+    )
+    payload_ok = _storage_upload(
+        f"runs/{run_id}/artifact.json",
+        payload,
+        "application/json",
+    )
+    return meta_ok and payload_ok
+
+
+def load_verification_artifact_meta(run_id: str) -> Optional[Dict[str, Any]]:
+    data = _storage_download(f"runs/{run_id}/meta.json")
+    if not data:
+        return None
+    try:
+        value = json.loads(data)
+    except ValueError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def load_verification_artifact(run_id: str) -> Optional[bytes]:
+    return _storage_download(f"runs/{run_id}/artifact.json")
 
 
 def save_audit_entry(entry: Any) -> None:
@@ -519,7 +651,7 @@ def _hydrate_verification_runs() -> None:
     rows = _select(
         "verification_runs",
         {
-            "select": "id,project_id,version_number,status,sandbox_provider,logs,firmware_binary_url,selftest_results,created_at,completed_at",
+            "select": "id,project_id,version_number,status,sandbox_provider,logs,firmware_binary_url,created_at,completed_at",
             "order": "created_at.asc",
             "limit": "200",
         },
@@ -534,7 +666,6 @@ def _hydrate_verification_runs() -> None:
                 sandbox_provider=row.get("sandbox_provider") or "e2b",
                 logs=row.get("logs") or "",
                 firmware_binary_url=row.get("firmware_binary_url"),
-                selftest_results=row.get("selftest_results"),
                 created_at=row.get("created_at"),
                 completed_at=row.get("completed_at"),
             )
