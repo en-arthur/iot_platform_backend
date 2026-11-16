@@ -52,9 +52,26 @@ export default function NewProjectWizard() {
 
   useEffect(() => {
     async function loadLibrary() {
-      const [b, p] = await Promise.all([api.getBoards(), api.getPeripherals()]);
-      setBoards(b);
-      setPeripherals(p);
+      try {
+        const [b, p] = await Promise.all([api.getBoards(), api.getPeripherals()]);
+        // Verified boards first, then by name, so the picker leads with the
+        // targets that have a pin map and a working build recipe.
+        const rank = { tested: 0, unverified: 1, draft: 2, deprecated: 3 };
+        const sorted = [...(b || [])].sort(
+          (x, y) =>
+            (rank[x.status] ?? 9) - (rank[y.status] ?? 9) ||
+            x.name.localeCompare(y.name)
+        );
+        setBoards(sorted);
+        setPeripherals(p);
+        setSelectedBoard((current) =>
+          sorted.some((board) => board.id === current)
+            ? current
+            : sorted[0]?.id || current
+        );
+      } catch {
+        // Keep the wizard usable with whatever was already loaded.
+      }
     }
     loadLibrary();
   }, []);
@@ -231,26 +248,75 @@ export default function NewProjectWizard() {
                 Target Development Board
               </label>
               <div className="grid gap-3 sm:grid-cols-3">
-                {boards.map((b) => (
-                  <div
-                    key={b.id}
-                    onClick={() => setSelectedBoard(b.id)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                      selectedBoard === b.id
-                        ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                        : 'border-border hover:bg-muted/50'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <Cpu className="h-5 w-5 text-primary" />
-                      <Badge variant={b.status === 'tested' ? 'confirmed' : b.status === 'draft' ? 'defaulted' : 'open'}>
-                        {b.status}
-                      </Badge>
+                {boards.map((b) => {
+                  const flash = b.specs?.flash_mb;
+                  const psram = b.specs?.psram_mb || 0;
+                  const pinCount = b.pin_map ? Object.keys(b.pin_map).length : 0;
+                  const connectivityLabel = {
+                    wifi: 'Wi-Fi',
+                    ethernet: 'Ethernet',
+                    ble: 'BLE only',
+                    none: 'No network',
+                  }[b.connectivity];
+                  const otaLimited = typeof flash === 'number' && flash < 4;
+
+                  return (
+                    <div
+                      key={b.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={selectedBoard === b.id}
+                      onClick={() => setSelectedBoard(b.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedBoard(b.id);
+                        }
+                      }}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary ${
+                        selectedBoard === b.id
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <Cpu className="h-5 w-5 text-primary" />
+                        <Badge variant={b.status === 'tested' ? 'confirmed' : b.status === 'draft' ? 'defaulted' : 'open'}>
+                          {b.status}
+                        </Badge>
+                      </div>
+                      <div className="font-semibold text-sm text-foreground">{b.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{b.mcu}</div>
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        {connectivityLabel && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {connectivityLabel}
+                          </span>
+                        )}
+                        {typeof flash === 'number' && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {flash} MB flash
+                          </span>
+                        )}
+                        {psram > 0 && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            +{psram} MB PSRAM
+                          </span>
+                        )}
+                        {pinCount > 0 && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {pinCount} pins mapped
+                          </span>
+                        )}
+                      </div>
+                      {otaLimited && (
+                        <div className="text-[10px] text-amber-600 dark:text-amber-500 mt-2">
+                          OTA needs 4 MB flash; this board is OTA-limited.
+                        </div>
+                      )}
                     </div>
-                    <div className="font-semibold text-sm text-foreground">{b.name}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{b.mcu}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
