@@ -61,7 +61,7 @@ export function ValidationPanel({ issues }) {
       <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
         <div className="flex items-center justify-between text-xs text-muted-foreground pb-1">
           <span className="font-semibold text-foreground uppercase tracking-wider text-[10px]">
-            Validation Issues
+            Plan Checks
           </span>
           <span className="font-mono text-[11px]">
             {issues.length} {issues.length === 1 ? 'item' : 'items'}

@@ -70,16 +70,17 @@ def main() -> int:
                 "PLATFORMIO_SETTING_ENABLE_TELEMETRY": "false",
             }
         )
-        .run_cmd("mkdir -p /opt/platformio /opt/platformio/libdeps /home/user/project")
+        .run_cmd("mkdir -p /opt/platformio /opt/platformio/libdeps /home/user/project", user="root")
     )
     for lib in LIBRARIES:
-        template = template.run_cmd(f'pio pkg install --global --library "{lib}"')
+        template = template.run_cmd(f'pio pkg install --global --library "{lib}"', user="root")
     for platform, board, env_name in WARMUP_TARGETS:
         # A real build downloads the framework, compiler and libraries, not just
         # the platform package. Without this the offline sandbox cannot build.
-        template = template.run_cmd(warmup_command(platform, board, env_name))
+        template = template.run_cmd(warmup_command(platform, board, env_name), user="root")
     template = (
-        template.run_cmd("chmod -R 777 /opt/platformio /home/user/project")
+        template.run_cmd("chmod -R 777 /opt/platformio /home/user/project", user="root")
+        .set_user("user")
         .set_workdir("/home/user/project")
         .set_start_cmd("sleep infinity", wait_for_timeout(1))
     )

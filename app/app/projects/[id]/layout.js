@@ -43,6 +43,20 @@ export default function ProjectWorkspaceLayout({ children, params }) {
   const { toggleSidebar } = useUIStore();
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [boardNames, setBoardNames] = useState({});
+
+  useEffect(() => {
+    api
+      .getBoards()
+      .then((boards) => {
+        const map = {};
+        (Array.isArray(boards) ? boards : []).forEach((board) => {
+          if (board?.id) map[board.id] = board.name;
+        });
+        setBoardNames(map);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleGenerateCode = async () => {
     if (isGenerating) return;
@@ -98,18 +112,18 @@ export default function ProjectWorkspaceLayout({ children, params }) {
   } else if (openFieldsCount > 0) {
     lockReason = `Confirm locked: ${openFieldsCount} required field(s) are open`;
   } else if (isAlreadyConfirmed) {
-    lockReason = 'Spec confirmed — ready for firmware synthesis & deployment';
+    lockReason = 'Plan confirmed — ready to generate code';
   } else {
-    lockReason = 'All validation rules passed — ready for engineering sign-off';
+    lockReason = 'All checks passed — ready to confirm plan';
   }
 
   const deployedBaseline = project?.deployed_version || 'v3.0';
 
   const tabs = [
-    { label: 'Spec model', href: `/app/projects/${projectId}`, exact: true, icon: FileText },
+    { label: 'Plan', href: `/app/projects/${projectId}`, exact: true, icon: FileText },
     { label: 'Code', href: `/app/projects/${projectId}/code`, icon: Code2 },
-    { label: 'Verification', href: `/app/projects/${projectId}/verify`, icon: CheckCircle },
-    { label: 'Flash', href: `/app/projects/${projectId}/flash`, icon: Zap },
+    { label: 'Build', href: `/app/projects/${projectId}/verify`, icon: CheckCircle },
+    { label: 'Install', href: `/app/projects/${projectId}/flash`, icon: Zap },
     { label: 'Live', href: `/app/projects/${projectId}/live`, icon: Radio },
   ];
 
@@ -170,7 +184,7 @@ export default function ProjectWorkspaceLayout({ children, params }) {
           {/* Board Chip */}
           <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground shrink-0">
             <Cpu className="h-3 w-3 text-primary" />
-            <span>{project?.board_id || 'ESP32-S3'}</span>
+            <span>{project?.board_id ? boardNames[project.board_id] || project.board_id : 'ESP32-S3'}</span>
           </span>
         </div>
 
@@ -222,7 +236,7 @@ export default function ProjectWorkspaceLayout({ children, params }) {
                 ? 'bg-emerald-600 hover:bg-emerald-600 text-white cursor-default'
                 : ''
             }`}
-            title={isConfirmDisabled ? lockReason : 'Confirm Spec and Sign Off'}
+            title={isConfirmDisabled ? lockReason : 'Confirm plan and sign off'}
           >
             {isSaving ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -232,7 +246,7 @@ export default function ProjectWorkspaceLayout({ children, params }) {
                 <span>Confirmed</span>
               </span>
             ) : (
-              'Confirm spec'
+              'Confirm plan'
             )}
           </Button>
         </div>

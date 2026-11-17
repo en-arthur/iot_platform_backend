@@ -369,7 +369,7 @@ export default function SpecWorkspacePage({ params }) {
     return (
       <div className="flex-1 flex items-center justify-center p-12 text-sm text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin mr-2 text-primary" />
-        <span>Loading 12-Section Spec Model...</span>
+        <span>Loading your plan...</span>
       </div>
     );
   }
@@ -416,11 +416,11 @@ export default function SpecWorkspacePage({ params }) {
           ===================================================================== */}
       <nav
         role="tablist"
-        aria-label="Spec Sections"
+        aria-label="Plan sections"
         className="hidden lg:flex w-[216px] min-w-[216px] max-w-[216px] border-r border-border bg-card/40 flex-col shrink-0 select-none overflow-hidden"
       >
         <div className="h-[36px] min-h-[36px] px-3 border-b border-border/80 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">
-          <span>Sections</span>
+          <span>Your plan</span>
           <span className="font-mono text-[10px]">12/12</span>
         </div>
 
@@ -487,13 +487,13 @@ export default function SpecWorkspacePage({ params }) {
           PANE 2: FIELDS PANE (Flexible width, ~750px at 1366px wide)
           ===================================================================== */}
       <section
-        aria-label="Spec Fields"
+        aria-label="Plan Fields"
         className="flex-1 min-w-0 flex flex-col bg-background border-r border-border overflow-hidden"
       >
         {/* Tablet Dropdown Selector for Sections (< 1024px) */}
         <div className="lg:hidden border-b border-border p-2 bg-card/60 shrink-0">
           <label htmlFor="tablet-section-select" className="sr-only">
-            Select Spec Section
+            Select Plan Section
           </label>
           <div className="relative">
             <select
@@ -616,7 +616,7 @@ export default function SpecWorkspacePage({ params }) {
             <div className="h-[44px] min-h-[44px] px-2 border-b border-border bg-card flex items-center justify-between gap-1 shrink-0 select-none">
               <TabsList className="grid grid-cols-3 h-8 flex-1 p-0.5">
                 <TabsTrigger value="validation" className="text-xs px-1 gap-1">
-                  <span>Validation</span>
+                  <span>Checks</span>
                   {issues.length > 0 && (
                     <span className="rounded-full bg-destructive/15 text-destructive font-mono text-[10px] px-1 py-0">
                       {issues.length}
@@ -702,7 +702,7 @@ export default function SpecWorkspacePage({ params }) {
               <div className="h-[48px] px-3 border-b border-border bg-card flex items-center justify-between gap-2 shrink-0">
                 <TabsList className="grid grid-cols-3 h-8 flex-1 p-0.5">
                   <TabsTrigger value="validation" className="text-xs px-1 gap-1">
-                    <span>Validation</span>
+                    <span>Checks</span>
                     {issues.length > 0 && (
                       <span className="rounded-full bg-destructive/15 text-destructive font-mono text-[10px] px-1 py-0">
                         {issues.length}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Activity,
   AlertTriangle,
@@ -19,9 +19,9 @@ import {
 } from 'lucide-react';
 
 const STATUS = {
-  queued: { label: 'Queued', variant: 'defaulted' },
+  queued: { label: 'Waiting to start', variant: 'defaulted' },
   running: { label: 'Building', variant: 'defaulted' },
-  passed: { label: 'Build passed', variant: 'confirmed' },
+  passed: { label: 'Build succeeded', variant: 'confirmed' },
   failed: { label: 'Build failed', variant: 'destructive' },
 };
 
@@ -53,6 +53,7 @@ export default function VerificationPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
   const [error, setError] = useState(null);
+  const [boardNames, setBoardNames] = useState({});
 
   const storageKey = `iot-verify-run-${projectId}`;
 
@@ -79,7 +80,7 @@ export default function VerificationPage({ params }) {
         applyRun(null);
       }
     } catch (err) {
-      setError(err?.message || 'Could not load verification runs.');
+      setError(err?.message || 'We could not load your builds.');
       applyRun(null);
     } finally {
       setLoading(false);
@@ -88,6 +89,16 @@ export default function VerificationPage({ params }) {
 
   useEffect(() => {
     fetchLatest();
+    api
+      .getBoards()
+      .then((boards) => {
+        const map = {};
+        (Array.isArray(boards) ? boards : []).forEach((board) => {
+          if (board?.id) map[board.id] = board.name;
+        });
+        setBoardNames(map);
+      })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
@@ -114,11 +125,11 @@ export default function VerificationPage({ params }) {
       if (id) {
         window.localStorage.setItem(storageKey, id);
         applyRun(null);
-        setLogs([`Started verification run ${id}.`]);
+        setLogs(['Starting your build…']);
         await pollRun(id);
       }
     } catch (err) {
-      setError(err?.message || 'Could not start a build.');
+      setError(err?.message || 'We could not start the build.');
     } finally {
       setTriggering(false);
     }
@@ -129,7 +140,7 @@ export default function VerificationPage({ params }) {
     try {
       await api.downloadFirmware(run.run_id, run.artifact_name || 'firmware.bin');
     } catch (err) {
-      setError(err?.message || 'Could not download the artifact.');
+      setError(err?.message || 'We could not download the firmware.');
     }
   };
 
@@ -139,6 +150,7 @@ export default function VerificationPage({ params }) {
   const status = STATUS[run?.status] || STATUS.queued;
   const sizeLabel = formatBytes(run?.artifact_size_bytes);
   const isRunning = run?.status === 'running' || run?.status === 'queued';
+  const boardLabel = run?.board_id ? boardNames[run.board_id] || run.board_id : 'Unknown device';
 
   return (
     <div className="container max-w-7xl p-6 md:p-8 space-y-8 h-full overflow-y-auto">
@@ -146,11 +158,11 @@ export default function VerificationPage({ params }) {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <Activity className="h-6 w-6 text-primary" />
-            <span>Build Verification</span>
+            <span>Build Check</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Compiles the generated PlatformIO project in an isolated E2B sandbox and reports
-            the real compiler output and the images it produced.
+            We build your project on a clean machine and show exactly what happened. When it
+            succeeds, you get a firmware file ready to install on your device.
           </p>
         </div>
 
@@ -164,12 +176,12 @@ export default function VerificationPage({ params }) {
           ) : (
             <Play className="h-4 w-4" />
           )}
-          <span>{run ? 'Re-run Build' : 'Run Build'}</span>
+          <span>{run ? 'Build Again' : 'Build Firmware'}</span>
         </Button>
       </div>
 
       <p className="text-xs text-muted-foreground -mt-4">
-        This checks compilation only. It does not emulate the MCU and does not test hardware.
+        This checks that your code builds. It does not test a physical device.
       </p>
 
       {error && (
@@ -184,11 +196,11 @@ export default function VerificationPage({ params }) {
           <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
           <div className="space-y-1 text-sm">
             <div className="font-semibold text-foreground">
-              Verification is not configured on this deployment
+              Building is not available on this server yet
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              The backend reached the sandbox step but could not create a build environment.
-              This is a deployment issue, not a problem with the project.
+              The build machine could not be started. This is a setup issue on our side — your
+              project is fine.
             </p>
             <code className="block text-[11px] font-mono text-amber-700 dark:text-amber-400 pt-1">
               {configError}
@@ -206,14 +218,14 @@ export default function VerificationPage({ params }) {
         <Card>
           <CardContent className="p-10 flex flex-col items-center text-center gap-3">
             <Terminal className="h-10 w-10 text-muted-foreground" />
-            <div className="text-sm font-semibold text-foreground">No builds yet</div>
+            <div className="text-sm font-semibold text-foreground">Nothing built yet</div>
             <p className="text-xs text-muted-foreground max-w-md leading-relaxed">
-              Generate the project first, then run a build. A run only passes when PlatformIO
-              exits successfully and produces a flashable image.
+              Build your project once to check it and get a firmware file. Your project must be
+              generated before it can be built.
             </p>
             <Button onClick={handleTrigger} disabled={triggering} className="gap-2 mt-2">
               <Play className="h-4 w-4" />
-              <span>Run Build</span>
+              <span>Build Firmware</span>
             </Button>
           </CardContent>
         </Card>
@@ -222,7 +234,7 @@ export default function VerificationPage({ params }) {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-border bg-card p-4 space-y-2">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Status
+                Result
               </div>
               <Badge variant={status.variant} className="gap-1.5">
                 {run.status === 'passed' && <CheckCircle2 className="h-3 w-3" />}
@@ -237,20 +249,20 @@ export default function VerificationPage({ params }) {
 
             <div className="rounded-xl border border-border bg-card p-4 space-y-2">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Board
+                Device
               </div>
               <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                 <Cpu className="h-4 w-4 text-primary" />
-                <span>{run.board_id || 'Unknown'}</span>
+                <span>{boardLabel}</span>
               </div>
               <div className="text-[11px] text-muted-foreground">
-                Spec version v{run.version_number ?? 1}
+                Plan version {run.version_number ?? 1}
               </div>
             </div>
 
             <div className="rounded-xl border border-border bg-card p-4 space-y-2">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Artifact
+                Firmware
               </div>
               {run.artifact_available ? (
                 <>
@@ -259,33 +271,33 @@ export default function VerificationPage({ params }) {
                   </div>
                   <div className="text-[11px] text-muted-foreground">
                     {sizeLabel || 'Size unknown'}
-                    {run.artifact_format === 'uf2' ? ' · UF2' : ' · flash images'}
+                    {run.artifact_format === 'uf2' ? ' · copy-to-device file' : ' · ready to install'}
                   </div>
                 </>
               ) : (
                 <div className="text-xs text-muted-foreground">
                   {run.status === 'passed'
-                    ? 'Build passed, but no artifact was published.'
-                    : 'No artifact for this run.'}
+                    ? 'The build succeeded, but no firmware file was saved.'
+                    : 'No firmware file for this build.'}
                 </div>
               )}
             </div>
 
             <div className="rounded-xl border border-border bg-card p-4 space-y-2">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Next step
+                What&apos;s next
               </div>
               {run.artifact_available ? (
                 <div className="space-y-2">
                   <div className="text-xs text-muted-foreground">
-                    The verified image can be flashed over USB.
+                    You can install this firmware on your device over USB.
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Link
                       href={`/app/projects/${projectId}/flash`}
                       className="text-xs font-semibold text-primary hover:underline"
                     >
-                      Open flasher
+                      Install firmware
                     </Link>
                     <button
                       type="button"
@@ -300,7 +312,7 @@ export default function VerificationPage({ params }) {
               ) : (
                 <div className="text-xs text-muted-foreground">
                   {run.status === 'failed'
-                    ? 'Fix the compiler error below, then run again.'
+                    ? 'Fix the error shown below, then build again.'
                     : 'Waiting for a successful build.'}
                 </div>
               )}
@@ -311,10 +323,10 @@ export default function VerificationPage({ params }) {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <Terminal className="h-4 w-4 text-primary" />
-                <span>Compiler &amp; Toolchain Output</span>
+                <span>Build Output</span>
               </h2>
               <span className="text-[10px] font-mono text-muted-foreground">
-                E2B sandbox · network blocked
+                Built on a clean machine
               </span>
             </div>
 
