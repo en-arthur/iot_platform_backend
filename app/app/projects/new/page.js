@@ -24,9 +24,9 @@ import {
 
 const STEPS = [
   { id: 1, title: 'Name & Goal' },
-  { id: 2, title: 'Hardware & Peripherals' },
-  { id: 3, title: 'Behavior & Logic' },
-  { id: 4, title: 'Interface Type' },
+  { id: 2, title: 'Hardware & Sensors' },
+  { id: 3, title: 'How It Works' },
+  { id: 4, title: 'Controls' },
 ];
 
 export default function NewProjectWizard() {
@@ -184,9 +184,9 @@ export default function NewProjectWizard() {
     <div className="container max-w-4xl p-6 md:p-10 space-y-8 pb-24">
       {/* Stepper Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Create New Hardware Project</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Start a New Project</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Provide your requirements in plain language. AI will synthesize the 12-section project spec.
+          Tell us what you want to build in your own words. We will turn it into a plan you can review.
         </p>
       </div>
 
@@ -227,9 +227,9 @@ export default function NewProjectWizard() {
       {currentStep === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Project Name & Objectives</CardTitle>
+            <CardTitle>Name Your Project</CardTitle>
             <CardDescription>
-              Identify your device and summarize its physical deployment scenario.
+              Give the device a name and say what it should do and where it will live.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -245,11 +245,11 @@ export default function NewProjectWizard() {
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                High-Level Goal & Context
+                What Should It Do?
               </label>
               <Textarea
                 rows={4}
-                placeholder="e.g. Battery-powered agricultural node placed in an enclosed greenhouse to monitor humidity, log barometric shifts, and actuate a ventilation exhaust fan."
+                placeholder="e.g. A battery-powered sensor in a greenhouse that reports temperature and humidity, and turns on a fan when it gets too hot."
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
               />
@@ -270,7 +270,7 @@ export default function NewProjectWizard() {
           <CardContent className="space-y-6">
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-3">
-                Target Development Board
+                Your Board
               </label>
               {libraryError && (
                 <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
@@ -371,7 +371,7 @@ export default function NewProjectWizard() {
 
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-3">
-                Peripherals & Components
+                Sensors & Parts
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 {peripherals.map((p) => {
@@ -438,7 +438,7 @@ export default function NewProjectWizard() {
                   <div className="flex items-center gap-2">
                     <Plus className="h-4 w-4 text-primary" />
                     <label htmlFor="custom-peripherals-input" className="text-xs font-semibold text-foreground">
-                      Type Other Peripherals & Components
+                      Add Another Part
                     </label>
                   </div>
                   <Input
@@ -450,7 +450,7 @@ export default function NewProjectWizard() {
                     autoFocus
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Enter any custom components (separated by commas). AI will synthesize pin allocations and driver configs.
+                    Type the parts you have, separated by commas. We will work out how to wire them up.
                   </p>
                 </div>
               )}
@@ -463,9 +463,9 @@ export default function NewProjectWizard() {
       {currentStep === 3 && (
         <Card>
           <CardHeader>
-            <CardTitle>Behavior & Operational Rules</CardTitle>
+            <CardTitle>How It Should Behave</CardTitle>
             <CardDescription>
-              State sampling rates, power modes, thresholds, and actuation logic in natural language.
+              In your own words: how often it checks its sensors, when it turns things on, and how it saves power.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -475,7 +475,7 @@ export default function NewProjectWizard() {
                   htmlFor="behavior-spec"
                   className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >
-                  Behavior Specification
+                  How It Should Work
                 </label>
                 <Button
                   type="button"
@@ -508,8 +508,8 @@ export default function NewProjectWizard() {
                 }}
                 placeholder={
                   behaviorLoading
-                    ? 'Drafting behavior specification from your goal and hardware...'
-                    : 'Describe sampling cycles, sleep modes, threshold triggers, and commands...'
+                    ? 'Writing a first draft from your goal and parts...'
+                    : 'For example: check the sensor every 30 seconds, turn the fan on above 30 degrees, and send a reading every 5 minutes.'
                 }
               />
               <p className="text-[11px] text-muted-foreground">
@@ -534,9 +534,9 @@ export default function NewProjectWizard() {
       {currentStep === 4 && (
         <Card>
           <CardHeader>
-            <CardTitle>Interface Mode Selection</CardTitle>
+            <CardTitle>How You Will Control It</CardTitle>
             <CardDescription>
-              Choose how users interact with this device. Can be converted later as a new version.
+              Pick the screen you want for this device. You can change it later.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -555,7 +555,7 @@ export default function NewProjectWizard() {
                 </div>
                 <h4 className="font-bold text-base text-foreground">Dashboard</h4>
                 <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                  Optimized for telemetry monitoring. Includes real-time sensor charts, threshold alert badges, and node connectivity health. Read-only.
+                  See what your device is measuring. Live charts, alerts when a value goes out of range, and a health check for each device. No buttons to press.
                 </p>
               </div>
 
@@ -573,7 +573,7 @@ export default function NewProjectWizard() {
                 </div>
                 <h4 className="font-bold text-base text-foreground">Full Web App</h4>
                 <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                  Bundled web application with telemetry graphs plus interactive actuator controls strictly mapped to declared commands, role-based access, and user sign-in.
+                  Same live charts, plus buttons to switch things on and off. Sign-in keeps the controls private to you.
                 </p>
               </div>
             </div>
