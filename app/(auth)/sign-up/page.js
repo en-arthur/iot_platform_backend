@@ -16,7 +16,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
+  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
   const handleSignUp = async (e) => {
     e.preventDefault();

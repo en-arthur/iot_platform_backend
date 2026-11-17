@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
+  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
   const handleSubmit = async (e) => {
     e.preventDefault();

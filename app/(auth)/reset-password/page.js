@@ -15,7 +15,7 @@ export default function ResetPasswordPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
+  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
   const handleReset = async (e) => {
     e.preventDefault();

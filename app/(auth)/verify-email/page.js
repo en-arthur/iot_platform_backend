@@ -15,7 +15,7 @@ function VerifyEmailContent() {
   const [resending, setResending] = useState(false);
   const [message, setMessage] = useState('');
 
-  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
+  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
   useEffect(() => {
     if (cooldown <= 0) return;

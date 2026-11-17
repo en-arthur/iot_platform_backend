@@ -27,7 +27,7 @@ export default function AppLayout({ children }) {
   const router = useRouter();
   const { sidebarOpen, toggleSidebar, setSidebarOpen } = useUIStore();
 
-  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
+  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
   // Real signed-in identity for the sidebar footer (no placeholder names).
   const [userName, setUserName] = useState('');
@@ -60,9 +60,9 @@ export default function AppLayout({ children }) {
     };
   }, [isMock]);
 
-  const displayName = userName || 'Account';
-  const displayRole = userRole || (userEmail ? userEmail : 'Signed in');
-  const userInitials = initialsOf(displayName) || '?';
+  const displayName = userName || (isMock ? 'Demo Engineer' : 'Developer');
+  const displayRole = userRole || (userEmail ? userEmail : isMock ? 'Mock workspace' : 'Local Workspace');
+  const userInitials = initialsOf(displayName) || 'D';
   const userTooltip = `${displayName} (${displayRole})`;
 
   const isProjectWorkspace =

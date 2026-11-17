@@ -20,7 +20,7 @@ function SignInForm() {
   const [errorMessage, setErrorMessage] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
-  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
+  const isMock = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 
   const handleSignIn = async (e) => {
     e.preventDefault();

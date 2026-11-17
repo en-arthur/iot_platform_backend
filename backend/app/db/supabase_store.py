@@ -23,6 +23,7 @@ _PLACEHOLDER_VALUES = {
     "placeholder-service-role-key",
     "placeholder-anon-key",
     "https://example.supabase.co",
+    "https://your-project.supabase.co",
 }
 
 
