@@ -49,6 +49,25 @@ class Settings(BaseSettings):
             return v
         return ["http://localhost:3000"]
 
+    @property
+    def CORS_ORIGINS(self) -> List[str]:
+        """Origins the API answers for.
+
+        The env var only lists deployed origins, so add the local dev origins
+        here as well: a developer running the frontend on localhost must still
+        be able to talk to the deployed API.
+        """
+        origins = list(self.BACKEND_CORS_ORIGINS)
+        for origin in (
+            self.FRONTEND_URL,
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ):
+            origin = (origin or "").rstrip("/")
+            if origin and origin not in origins:
+                origins.append(origin)
+        return origins
+
     # MQTT Configuration
     MQTT_BROKER_HOST: str = "mosquitto"
     MQTT_BROKER_PORT: int = 1883

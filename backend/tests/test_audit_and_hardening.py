@@ -17,6 +17,37 @@ def test_health_observability(client):
     assert components["e2b_sandbox"] in ("configured", "not_configured")
 
 
+def test_cors_allows_local_dev_origins_even_when_env_lists_only_prod(
+    client, monkeypatch
+):
+    """A local frontend must be able to call the deployed API.
+
+    Render's env var lists only the deployed origin, so the settings layer has
+    to add the localhost dev origins itself.
+    """
+    from app.core.config import settings
+
+    monkeypatch.setattr(
+        settings, "BACKEND_CORS_ORIGINS", ["https://iot-platform-sepia.vercel.app"]
+    )
+    assert "http://localhost:3000" in settings.CORS_ORIGINS
+    assert "http://127.0.0.1:3000" in settings.CORS_ORIGINS
+    assert "https://iot-platform-sepia.vercel.app" in settings.CORS_ORIGINS
+
+    response = client.options(
+        "/api/v1/library/boards",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.status_code == 200
+    assert (
+        response.headers.get("access-control-allow-origin")
+        == "http://localhost:3000"
+    )
+
+
 def test_rate_limit_headers(client, create_test_token):
     token = create_test_token()
     response = client.get(
