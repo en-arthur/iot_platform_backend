@@ -175,25 +175,32 @@ export default function NewProjectWizard() {
       <div className="flex items-center justify-between border-b border-border pb-4">
         {STEPS.map((s, idx) => (
           <div key={s.id} className="flex items-center gap-2">
-            <div
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-                currentStep === s.id
-                  ? 'bg-primary text-primary-foreground ring-2 ring-primary/30'
-                  : currentStep > s.id
-                  ? 'bg-emerald-500/20 text-emerald-500'
-                  : 'bg-muted text-muted-foreground'
-              }`}
+            <button
+              type="button"
+              disabled={behaviorLoading}
+              onClick={() => setCurrentStep(s.id)}
+              className="flex items-center gap-2 group cursor-pointer focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {currentStep > s.id ? <CheckCircle2 className="h-4 w-4" /> : s.id}
-            </div>
-            <span
-              className={`text-xs font-medium hidden sm:inline ${
-                currentStep === s.id ? 'text-foreground font-semibold' : 'text-muted-foreground'
-              }`}
-            >
-              {s.title}
-            </span>
-            {idx < STEPS.length - 1 && <span className="text-border mx-2 hidden sm:inline">—</span>}
+              <div
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                  currentStep === s.id
+                    ? 'bg-primary text-primary-foreground ring-2 ring-primary/30'
+                    : currentStep > s.id
+                    ? 'bg-emerald-500/20 text-emerald-500'
+                    : 'bg-muted text-muted-foreground group-hover:bg-muted/80'
+                }`}
+              >
+                {currentStep > s.id ? <CheckCircle2 className="h-4 w-4" /> : s.id}
+              </div>
+              <span
+                className={`text-xs font-medium hidden sm:inline transition-colors ${
+                  currentStep === s.id ? 'text-foreground font-semibold' : 'text-muted-foreground group-hover:text-foreground'
+                }`}
+              >
+                {s.title}
+              </span>
+            </button>
+            {idx < STEPS.length - 1 && <span className="text-border mx-2 hidden sm:inline select-none">—</span>}
           </div>
         ))}
       </div>
@@ -281,9 +288,14 @@ export default function NewProjectWizard() {
                     >
                       <div className="flex justify-between items-center mb-2">
                         <Cpu className="h-5 w-5 text-primary" />
-                        <Badge variant={b.status === 'tested' ? 'confirmed' : b.status === 'draft' ? 'defaulted' : 'open'}>
-                          {b.status}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          {selectedBoard === b.id && (
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
+                          )}
+                          <Badge variant={b.status === 'tested' ? 'confirmed' : b.status === 'draft' ? 'defaulted' : 'open'}>
+                            {b.status}
+                          </Badge>
+                        </div>
                       </div>
                       <div className="font-semibold text-sm text-foreground">{b.name}</div>
                       <div className="text-xs text-muted-foreground mt-1">{b.mcu}</div>
