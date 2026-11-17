@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -228,6 +229,38 @@ class VerificationRepository:
 
         return run_obj
 
+    @staticmethod
+    def _offset(value) -> Optional[int]:
+        """Accept 0x10000, 65536 or 0 from PlatformIO metadata."""
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            try:
+                return int(value, 0)
+            except ValueError:
+                return None
+        return None
+
+    @staticmethod
+    def _sandbox_path(project_dir: str, path: str) -> str:
+        if path.startswith("/"):
+            return path
+        if path.startswith("./"):
+            path = path[2:]
+        return f"{PROJECT_DIR}/{project_dir}/{path}"
+
+    @staticmethod
+    def _app_image(env: Dict, build_dir: str, sizes: Dict[str, int]) -> Optional[str]:
+        """Path of the application image that belongs at ``application_offset``."""
+        prog = env.get("prog_path")
+        if isinstance(prog, str) and prog.endswith(".elf"):
+            candidate = prog[:-4] + ".bin"
+            if candidate.rsplit("/", 1)[-1] in sizes or candidate.startswith("/"):
+                return candidate
+        if "firmware.bin" in sizes:
+            return f"{PROJECT_DIR}/{build_dir}/firmware.bin"
+        return None
+
     async def _collect_artifact(
         self,
         sandbox_id: str,
@@ -236,7 +269,12 @@ class VerificationRepository:
         run_id: str,
         project_id: str,
     ) -> Tuple[Optional[FirmwareArtifact], str]:
-        """Download the images PlatformIO produced, with real flash offsets."""
+        """Download the images PlatformIO produced, with real flash offsets.
+
+        PlatformIO's project metadata carries the upload plan it would use
+        (``extra.flash_images`` plus ``application_offset``), so the offsets come
+        from the toolchain rather than a hard-coded table.
+        """
         build_root = f"{project_dir}/.pio/build"
         _, out, _ = await self.runner.run_command(
             sandbox_id, f"find {build_root} -mindepth 1 -maxdepth 1 -type d 2>/dev/null"
@@ -258,40 +296,83 @@ class VerificationRepository:
             if len(parts) == 2 and parts[1].isdigit():
                 sizes[parts[0]] = int(parts[1])
 
-        segments: List[Tuple[int, str]] = []
+        candidates: List[Tuple[int, str]] = []
         artifact_format = "esp-segments"
 
-        if "flash_args" in sizes:
+        # 1. The toolchain's own upload plan (ESP32 family).
+        code, meta_out, _ = await self.runner.run_command(
+            sandbox_id, f"pio project metadata --json-output -d {project_dir}"
+        )
+        if code == 0 and meta_out.strip():
+            try:
+                meta = json.loads(meta_out)
+            except ValueError:
+                meta = None
+            if isinstance(meta, dict) and meta:
+                env_name = getattr(board, "env_name", None)
+                env = meta.get(env_name) if env_name else None
+                if not isinstance(env, dict):
+                    env = next(iter(meta.values()))
+                extra = env.get("extra") if isinstance(env, dict) else None
+                extra = extra if isinstance(extra, dict) else {}
+                plan: List[Tuple[int, str]] = []
+                for item in extra.get("flash_images") or []:
+                    offset = self._offset(item.get("offset"))
+                    path = item.get("path")
+                    if offset is None or not isinstance(path, str):
+                        plan = []
+                        break
+                    plan.append((offset, path))
+                app_offset = self._offset(extra.get("application_offset"))
+                if plan and app_offset is not None:
+                    app = self._app_image(env, build_dir, sizes)
+                    if app:
+                        plan.append((app_offset, app))
+                    else:
+                        plan = []
+                if plan:
+                    candidates = [
+                        (offset, self._sandbox_path(project_dir, path))
+                        for offset, path in plan
+                    ]
+
+        # 2. Older platforms write a flash_args file next to the images.
+        if not candidates and "flash_args" in sizes:
             _, flash_args, _ = await self.runner.run_command(
                 sandbox_id, f"cat {build_dir}/flash_args 2>/dev/null"
             )
-            segments = [
-                (offset, name)
+            candidates = [
+                (offset, f"{PROJECT_DIR}/{build_dir}/{name}")
                 for offset, name in parse_flash_args(flash_args)
                 if name in sizes and "/" not in name and ".." not in name
             ]
-            if not segments:
+            if not candidates:
                 return None, "flash_args was present but listed no images that exist."
-        else:
+
+        # 3. Single-image platforms: UF2 (RP2040) and ESP8266.
+        if not candidates:
             uf2 = next((name for name in sizes if name.endswith(".uf2")), None)
             if uf2:
-                segments = [(0, uf2)]
+                candidates = [(0, f"{PROJECT_DIR}/{build_dir}/{uf2}")]
                 artifact_format = "uf2"
             elif board.platform == "espressif8266" and "firmware.bin" in sizes:
                 # The ESP8266 Arduino core emits one combined image at 0x0.
-                segments = [(0, "firmware.bin")]
+                candidates = [(0, f"{PROJECT_DIR}/{build_dir}/firmware.bin")]
             else:
                 return None, (
-                    "No flash_args file and no single flashable image were found; "
-                    "cannot determine where to write the firmware."
+                    "PlatformIO did not report a flashable image for this board, "
+                    "so there is nowhere safe to write the firmware."
                 )
 
         flashed: List[ArtifactSegment] = []
-        for offset, name in segments:
+        seen = set()
+        for offset, path in candidates:
+            name = path.rsplit("/", 1)[-1]
+            if (offset, name) in seen:
+                continue
+            seen.add((offset, name))
             try:
-                raw = await self.runner.download_file(
-                    sandbox_id, f"{PROJECT_DIR}/{build_dir}/{name}"
-                )
+                raw = await self.runner.download_file(sandbox_id, path)
             except Exception as exc:
                 return None, f"Could not download {name}: {exc}"
             flashed.append(
@@ -306,6 +387,7 @@ class VerificationRepository:
         if not flashed:
             return None, "The build produced no downloadable images."
 
+        flashed.sort(key=lambda segment: segment.offset)
         primary = next(
             (segment.name for segment in flashed if segment.name == "firmware.bin"),
             flashed[-1].name,

@@ -1,4 +1,5 @@
 import base64
+import json
 import pytest
 from types import SimpleNamespace
 from app.agents.debug_agent import DebugAgent
@@ -103,8 +104,15 @@ def test_artifact_is_not_fabricated(client, create_test_token):
 @pytest.mark.asyncio
 async def test_pipeline_fails_honestly_without_e2b_key(client, create_test_token, monkeypatch):
     monkeypatch.setattr(settings, "E2B_API_KEY", None)
-    run = verification_repo.create_run("proj-greenhouse-01", "test-user-uuid-1")
-    result = await verification_repo.execute_run_pipeline(run.run_id, "test-user-uuid-1")
+    # The repo's runner captured the key at import time, so build a fresh one
+    # and swap it in. Without this the test would create a real E2B sandbox.
+    original = verification_repo.runner
+    verification_repo.runner = E2BSandboxRunner(template="esp32-pio")
+    try:
+        run = verification_repo.create_run("proj-greenhouse-01", "test-user-uuid-1")
+        result = await verification_repo.execute_run_pipeline(run.run_id, "test-user-uuid-1")
+    finally:
+        verification_repo.runner = original
 
     assert result.status == "failed"
     assert "E2B is not configured" in result.logs
@@ -115,9 +123,10 @@ async def test_pipeline_fails_honestly_without_e2b_key(client, create_test_token
 class _FakeSandbox:
     """Returns the files a PlatformIO build would leave behind."""
 
-    def __init__(self, flash_args, binaries):
+    def __init__(self, flash_args=None, binaries=None, metadata=None):
         self.flash_args = flash_args
-        self.binaries = binaries
+        self.binaries = binaries or {}
+        self.metadata = metadata
 
     async def run_command(self, sandbox_id, cmd):
         if "-type d" in cmd:
@@ -127,6 +136,10 @@ class _FakeSandbox:
             if self.flash_args is not None:
                 lines.append(f"flash_args {len(self.flash_args)}")
             return 0, "\n".join(lines) + "\n", ""
+        if "pio project metadata" in cmd:
+            if self.metadata is None:
+                return 1, "", "metadata unavailable"
+            return 0, json.dumps(self.metadata), ""
         if cmd.startswith("cat ") and "flash_args" in cmd:
             return 0, self.flash_args or "", ""
         return 1, "", "unexpected command"
@@ -175,6 +188,59 @@ async def test_artifact_uses_flash_args_offsets_for_esp32():
         item.name: base64.b64decode(item.data_b64) for item in artifact.segments
     }
     assert decoded == binaries
+
+
+@pytest.mark.asyncio
+async def test_artifact_uses_platformio_metadata_offsets_for_esp32s3():
+    """PlatformIO 6.x has no flash_args; offsets come from project metadata."""
+    binaries = {
+        "bootloader.bin": b"BOOT",
+        "partitions.bin": b"PART",
+        "boot_app0.bin": b"OTA0",
+        "firmware.bin": b"APP-IMAGE",
+    }
+    build = "/home/user/project/firmware/.pio/build/esp32s3"
+    metadata = {
+        "esp32s3": {
+            "prog_path": f"{build}/firmware.elf",
+            "extra": {
+                "flash_images": [
+                    {"offset": "0x0000", "path": f"{build}/bootloader.bin"},
+                    {"offset": "0x8000", "path": f"{build}/partitions.bin"},
+                    {
+                        "offset": "0xe000",
+                        "path": "/opt/platformio/packages/framework-arduinoespressif32/"
+                        "tools/partitions/boot_app0.bin",
+                    },
+                ],
+                "application_offset": "0x10000",
+            },
+        }
+    }
+    verification_repo.runner = _FakeSandbox(binaries=binaries, metadata=metadata)
+    try:
+        artifact, reason = await verification_repo._collect_artifact(
+            "sandbox-3",
+            "firmware",
+            SimpleNamespace(
+                platform="espressif32", id="esp32-s3-devkitc-1", env_name="esp32s3"
+            ),
+            "run-unit-3",
+            "proj-unit-3",
+        )
+    finally:
+        verification_repo.runner = E2BSandboxRunner()
+
+    assert artifact is not None, reason
+    assert artifact.format == "esp-segments"
+    assert artifact.artifact_name == "firmware.bin"
+    assert artifact.total_bytes == sum(len(item) for item in binaries.values())
+    assert [(item.name, item.offset) for item in artifact.segments] == [
+        ("bootloader.bin", 0x0000),
+        ("partitions.bin", 0x8000),
+        ("boot_app0.bin", 0xE000),
+        ("firmware.bin", 0x10000),
+    ]
 
 
 @pytest.mark.asyncio

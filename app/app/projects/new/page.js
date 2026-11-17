@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { MOCK_BOARDS, MOCK_PERIPHERALS } from '@/lib/api/mocks';
 import { Button } from '@/components/ui/button';
 import { Input, Textarea } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -49,30 +50,47 @@ export default function NewProjectWizard() {
   // Library Data
   const [boards, setBoards] = useState([]);
   const [peripherals, setPeripherals] = useState([]);
+  const [libraryError, setLibraryError] = useState(false);
+
+  const rankBoards = (list) => {
+    // Verified boards first, then by name, so the picker leads with the
+    // targets that have a pin map and a working build recipe.
+    const rank = { tested: 0, unverified: 1, draft: 2, deprecated: 3 };
+    return [...(list || [])].sort(
+      (x, y) =>
+        (rank[x.status] ?? 9) - (rank[y.status] ?? 9) ||
+        x.name.localeCompare(y.name)
+    );
+  };
+
+  const loadLibrary = async () => {
+    setLibraryError(false);
+    try {
+      const [b, p] = await Promise.all([api.getBoards(), api.getPeripherals()]);
+      const sorted = rankBoards(b);
+      setBoards(sorted);
+      setPeripherals(p);
+      setSelectedBoard((current) =>
+        sorted.some((board) => board.id === current)
+          ? current
+          : sorted[0]?.id || current
+      );
+    } catch {
+      // Never leave the picker blank: fall back to the bundled library and
+      // tell the user the server could not be reached.
+      const sorted = rankBoards(MOCK_BOARDS);
+      setBoards(sorted);
+      setPeripherals(MOCK_PERIPHERALS);
+      setLibraryError(true);
+      setSelectedBoard((current) =>
+        sorted.some((board) => board.id === current)
+          ? current
+          : sorted[0]?.id || current
+      );
+    }
+  };
 
   useEffect(() => {
-    async function loadLibrary() {
-      try {
-        const [b, p] = await Promise.all([api.getBoards(), api.getPeripherals()]);
-        // Verified boards first, then by name, so the picker leads with the
-        // targets that have a pin map and a working build recipe.
-        const rank = { tested: 0, unverified: 1, draft: 2, deprecated: 3 };
-        const sorted = [...(b || [])].sort(
-          (x, y) =>
-            (rank[x.status] ?? 9) - (rank[y.status] ?? 9) ||
-            x.name.localeCompare(y.name)
-        );
-        setBoards(sorted);
-        setPeripherals(p);
-        setSelectedBoard((current) =>
-          sorted.some((board) => board.id === current)
-            ? current
-            : sorted[0]?.id || current
-        );
-      } catch {
-        // Keep the wizard usable with whatever was already loaded.
-      }
-    }
     loadLibrary();
   }, []);
 
@@ -244,9 +262,9 @@ export default function NewProjectWizard() {
       {currentStep === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Verified Hardware Library Selection</CardTitle>
+            <CardTitle>Choose Your Hardware</CardTitle>
             <CardDescription>
-              Choose your target MCU board and connected sensors or actuators.
+              Pick the board you will use, then add the sensors or parts you will connect to it.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -254,6 +272,25 @@ export default function NewProjectWizard() {
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-3">
                 Target Development Board
               </label>
+              {libraryError && (
+                <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  <span>We could not reach the server, so this is the built-in board list.</span>
+                  <button
+                    type="button"
+                    onClick={loadLibrary}
+                    className="inline-flex items-center gap-1 font-semibold underline"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Try again
+                  </button>
+                </div>
+              )}
+              {boards.length === 0 && !libraryError && (
+                <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading boards…
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-3">
                 {boards.map((b) => {
                   const flash = b.specs?.flash_mb;

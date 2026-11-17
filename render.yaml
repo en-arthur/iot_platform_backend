@@ -23,7 +23,7 @@ services:
       - key: FRONTEND_URL
         value: https://iot-platform-sepia.vercel.app
       - key: BACKEND_CORS_ORIGINS
-        value: '["https://iot-platform-sepia.vercel.app"]'
+        value: '["https://iot-platform-sepia.vercel.app","http://localhost:3000","http://127.0.0.1:3000"]'
       # Render only exposes HTTPS/WSS (443) publicly, so the backend must talk to
       # the broker over WSS, not raw TCP on 1883.
       - key: MQTT_BROKER_HOST
