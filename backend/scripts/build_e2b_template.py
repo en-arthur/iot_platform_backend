@@ -46,7 +46,7 @@ def warmup_command(platform: str, board: str, env_name: str) -> str:
         "printf '[env:%s]\\nplatform = %s\\nboard = %s\\nframework = arduino\\n"
         "lib_deps =\\n%s' "
         "> platformio.ini && "
-        "printf 'void setup() {}\\nvoid loop() {}\\n' > src/main.cpp && "
+        "printf '#include <Arduino.h>\\nvoid setup() {}\\nvoid loop() {}\\n' > src/main.cpp && "
         "pio run && "
         f"cd / && rm -rf {directory}"
     ) % (env_name, platform, board, lib_deps)
