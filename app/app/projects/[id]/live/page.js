@@ -51,25 +51,46 @@ export default function LiveInterfacePage({ params }) {
 
   // Interface type from spec or project
   const interfaceType = spec?.interface?.fields?.interface_type?.value || project?.interface_type || 'web app';
-  const declaredCommands = spec?.behavior?.fields?.declared_commands?.value || [
-    'TRIGGER_FAN_FORCE_ON',
-    'TRIGGER_FAN_AUTO',
-    'REBOOT_NODE',
-  ];
+  const declaredCommands = spec?.behavior?.fields?.declared_commands?.value || [];
 
   useEffect(() => {
+    let cancelled = false;
     async function loadData() {
-      const [devs, tData] = await Promise.all([
-        api.getDevices(projectId),
-        api.getTelemetry('dev-node-alpha'),
-      ]);
-      setDevices(devs);
-      setTelemetry(tData);
-      if (project?.lifecycle === 'deployed') {
-        setDeployed(true);
+      try {
+        const devs = await api.getDevices(projectId);
+        if (cancelled) return;
+        const list = Array.isArray(devs) ? devs : [];
+        setDevices(list);
+        // Read the real telemetry of this project's devices. Nothing is shown
+        // until a device has actually reported.
+        const series = await Promise.all(
+          list
+            .slice(0, 5)
+            .map((device) =>
+              api.getTelemetry(device.id).catch(() => [])
+            )
+        );
+        if (cancelled) return;
+        const merged = series
+          .flat()
+          .filter(Boolean)
+          .sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+        setTelemetry(merged);
+        if (project?.lifecycle === 'deployed') {
+          setDeployed(true);
+        }
+      } catch {
+        if (!cancelled) setTelemetry([]);
       }
     }
     loadData();
+    // Keep the page current while it is open. This only re-reads data the
+    // devices have already sent; nothing is invented.
+    const timer = setInterval(loadData, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [projectId, project]);
 
   const handleDeploy = async () => {
@@ -96,13 +117,15 @@ export default function LiveInterfacePage({ params }) {
       setCommandStatus('No device provisioned yet. Click "Provision New Device" first.');
       return;
     }
-    setCommandStatus(`Sending command ${cmd}...`);
+    setCommandStatus(`Sending ${cmd}…`);
     try {
-      const res = await api.sendDeviceCommand(targetDevice, cmd);
-      setCommandStatus(`Executed "${cmd}" successfully at ${new Date().toLocaleTimeString()}!`);
-      setTimeout(() => setCommandStatus(''), 4000);
+      await api.sendDeviceCommand(targetDevice, cmd);
+      setCommandStatus(
+        `Command sent: ${cmd}. Your device acts on it the next time it checks in.`
+      );
+      setTimeout(() => setCommandStatus(''), 6000);
     } catch (err) {
-      setCommandStatus(`Error: ${err.message}`);
+      setCommandStatus(`Could not send the command: ${err.message}`);
     }
   };
 
@@ -113,6 +136,28 @@ export default function LiveInterfacePage({ params }) {
       setTimeout(() => setCopiedSecret(false), 2000);
     }
   };
+
+  // Only real readings are shown; a tile stays empty until a device reports.
+  const formatTime = (value) => {
+    if (!value) return '';
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString();
+  };
+  const latestOf = (needle) => {
+    const match = telemetry
+      .filter((entry) => String(entry.metric || '').toLowerCase().includes(needle))
+      .slice(-1)[0];
+    return match || null;
+  };
+  const latestTemp = latestOf('temp');
+  const latestHumidity = latestOf('humid');
+  const latestRelay = latestOf('relay') || latestOf('state');
+  const lastReading = telemetry[telemetry.length - 1] || null;
+  const chartData = latestTemp
+    ? telemetry.filter((entry) =>
+        String(entry.metric || '').toLowerCase().includes('temp')
+      )
+    : telemetry;
 
   return (
     <div className="container max-w-7xl p-6 md:p-8 space-y-8 h-full overflow-y-auto">
@@ -129,7 +174,8 @@ export default function LiveInterfacePage({ params }) {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Real-time telemetry streaming from live ESP32-S3 nodes via FastAPI MQTT broker.
+            Readings from your own devices show up here once they connect and
+            start reporting.
           </p>
         </div>
 
@@ -157,46 +203,68 @@ export default function LiveInterfacePage({ params }) {
         <Card>
           <CardContent className="p-5">
             <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-              <span>Current Temperature</span>
+              <span>Temperature</span>
               <Activity className="h-4 w-4 text-emerald-500" />
             </div>
             <div className="text-2xl font-extrabold text-foreground">
-              {telemetry[telemetry.length - 1]?.value || 29.5}°C
+              {latestTemp ? `${latestTemp.value}${latestTemp.unit || '°C'}` : '—'}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Ventilation trigger: 30.0°C</p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {latestTemp ? `Last reading ${formatTime(latestTemp.timestamp)}` : 'No readings yet'}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-5">
             <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-              <span>Relative Humidity</span>
+              <span>Humidity</span>
               <Activity className="h-4 w-4 text-sky-500" />
             </div>
-            <div className="text-2xl font-extrabold text-foreground">64.2%</div>
-            <p className="text-[11px] text-muted-foreground mt-1">Optimal greenhouse range</p>
+            <div className="text-2xl font-extrabold text-foreground">
+              {latestHumidity ? `${latestHumidity.value}${latestHumidity.unit || '%'}` : '—'}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {latestHumidity ? `Last reading ${formatTime(latestHumidity.timestamp)}` : 'No readings yet'}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-5">
             <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-              <span>Fan Relay Status</span>
+              <span>Last Reported Output</span>
               <Power className="h-4 w-4 text-amber-500" />
             </div>
-            <div className="text-2xl font-extrabold text-foreground">AUTO (OFF)</div>
-            <p className="text-[11px] text-muted-foreground mt-1">GPIO9 active-high relay</p>
+            <div className="text-2xl font-extrabold text-foreground">
+              {latestRelay ? String(latestRelay.value) : '—'}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {latestRelay
+                ? `${latestRelay.metric} at ${formatTime(latestRelay.timestamp)}`
+                : 'Your device has not reported an output state yet'}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-5">
             <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-              <span>Connected Nodes</span>
+              <span>Devices</span>
               <Cpu className="h-4 w-4 text-primary" />
             </div>
-            <div className="text-2xl font-extrabold text-foreground">{devices.length} Online</div>
-            <p className="text-[11px] text-emerald-500 mt-1">MQTT TLS v1.3 healthy</p>
+            <div className="text-2xl font-extrabold text-foreground">
+              {devices.length === 0
+                ? 'None yet'
+                : `${devices.filter((d) => d.status === 'online').length} of ${devices.length} online`}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {lastReading
+                ? `Most recent reading ${formatTime(lastReading.timestamp)}`
+                : devices.length === 0
+                  ? 'Add a device below to start reporting'
+                  : 'Waiting for the first reading'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -205,8 +273,10 @@ export default function LiveInterfacePage({ params }) {
       <Card>
         <CardHeader className="p-5 border-b flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base">Real-Time Climate Telemetry (BME280)</CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">Streamed every 60s between deep sleep intervals</p>
+            <CardTitle className="text-base">Readings Over Time</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Plotted from what your device has actually sent.
+            </p>
           </div>
           <div className="flex gap-1.5 bg-muted p-1 rounded-lg">
             {['1h', '6h', '24h', '7d'].map((r) => (
@@ -223,27 +293,48 @@ export default function LiveInterfacePage({ params }) {
           </div>
         </CardHeader>
         <CardContent className="p-5">
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={telemetry} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                <XAxis dataKey="timestamp" stroke="#64748b" fontSize={11} />
-                <YAxis domain={[20, 40]} stroke="#64748b" fontSize={11} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 8 }}
-                  itemStyle={{ fontSize: 12 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  name="Temperature (°C)"
-                  stroke="#10b981"
-                  strokeWidth={2.5}
-                  dot={{ r: 4, fill: '#10b981' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {chartData.length === 0 ? (
+            <div className="h-72 w-full flex flex-col items-center justify-center gap-2 text-center">
+              <Activity className="h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-foreground">No readings yet</p>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                Once your device is powered on, connected, and sending data, its
+                readings will be drawn here. Nothing is shown until then.
+              </p>
+            </div>
+          ) : (
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                  <XAxis
+                    dataKey="timestamp"
+                    stroke="#64748b"
+                    fontSize={11}
+                    tickFormatter={(value) => {
+                      const parsed = new Date(value);
+                      return Number.isNaN(parsed.getTime())
+                        ? String(value)
+                        : parsed.toLocaleTimeString();
+                    }}
+                  />
+                  <YAxis stroke="#64748b" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: 8 }}
+                    itemStyle={{ fontSize: 12 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    name="Reading"
+                    stroke="#10b981"
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: '#10b981' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -257,28 +348,36 @@ export default function LiveInterfacePage({ params }) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sliders className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-base">Hardware Command Dispatcher</CardTitle>
+                    <CardTitle className="text-base">Device Commands</CardTitle>
                   </div>
-                  <Badge variant="confirmed">Spec Declared</Badge>
+                  <Badge variant="confirmed">From your plan</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Commands are strictly bound to declared actions in section 4 (Behavior). Arbitrary commands are rejected by FastAPI.
+                  These are the on/off actions described in your plan. The server
+                  refuses any command that is not on this list.
                 </p>
               </CardHeader>
               <CardContent className="p-5 space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {declaredCommands.map((cmd) => (
-                    <Button
-                      key={cmd}
-                      variant="outline"
-                      onClick={() => handleSendCommand(cmd)}
-                      className="h-12 justify-start font-mono text-xs gap-2 border-border/80 hover:border-primary"
-                    >
-                      <Power className="h-4 w-4 text-primary" />
-                      <span>{cmd}</span>
-                    </Button>
-                  ))}
-                </div>
+                {declaredCommands.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Your plan does not list any on/off actions for this device,
+                    so there is nothing to send.
+                  </p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {declaredCommands.map((cmd) => (
+                      <Button
+                        key={cmd}
+                        variant="outline"
+                        onClick={() => handleSendCommand(cmd)}
+                        className="h-12 justify-start font-mono text-xs gap-2 border-border/80 hover:border-primary"
+                      >
+                        <Power className="h-4 w-4 text-primary" />
+                        <span>{cmd}</span>
+                      </Button>
+                    ))}
+                  </div>
+                )}
 
                 {commandStatus && (
                   <div className="p-3 rounded-lg bg-muted text-xs font-mono text-primary animate-in fade-in">
@@ -289,31 +388,31 @@ export default function LiveInterfacePage({ params }) {
             </Card>
           </div>
 
-          {/* Role-Based Access Control Preview */}
+          {/* Who can use this app */}
           <div className="lg:col-span-5">
             <Card>
               <CardHeader className="p-5 border-b">
                 <div className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-base">Role-Based Access (RBAC)</CardTitle>
+                  <CardTitle className="text-base">Who Can Use This</CardTitle>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Web app user permissions and session control</p>
+                <p className="text-xs text-muted-foreground mt-1">Access to this dashboard</p>
               </CardHeader>
               <CardContent className="p-5 space-y-3 text-xs">
                 <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20">
                   <div>
-                    <div className="font-semibold text-foreground">Operator (Field Staff)</div>
-                    <div className="text-muted-foreground text-[11px]">Can view telemetry and toggle FAN_AUTO</div>
+                    <div className="font-semibold text-foreground">You (account owner)</div>
+                    <div className="text-muted-foreground text-[11px]">
+                      Can see readings and send the commands above
+                    </div>
                   </div>
-                  <Badge variant="defaulted">1 Member</Badge>
+                  <Badge variant="confirmed">Signed in</Badge>
                 </div>
-                <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20">
-                  <div>
-                    <div className="font-semibold text-foreground">Engineer (Admin)</div>
-                    <div className="text-muted-foreground text-[11px]">Full command dispatch + firmware OTA</div>
-                  </div>
-                  <Badge variant="confirmed">Active</Badge>
-                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Sharing this dashboard with other people, and giving them
+                  different permission levels, is not available yet. Anyone who
+                  signs in to this account can use every control here.
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -348,7 +447,9 @@ export default function LiveInterfacePage({ params }) {
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Burn this token into the ESP32 NVS partition or provide it over USB serial during initial enrollment.
+              Keep this key somewhere safe. Your device needs it the first time it
+              connects, so enter it during device setup, or add it to the code
+              before you install the firmware.
             </p>
           </div>
 
