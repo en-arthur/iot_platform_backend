@@ -48,6 +48,45 @@ def test_cors_allows_local_dev_origins_even_when_env_lists_only_prod(
     )
 
 
+def test_cors_allows_the_public_custom_domain(client):
+    """The app is served from devicestack.tech, so that origin must pass."""
+    from app.core.config import settings
+
+    assert "https://www.devicestack.tech" in settings.CORS_ORIGINS
+    assert "https://devicestack.tech" in settings.CORS_ORIGINS
+
+    response = client.options(
+        "/api/v1/library/boards",
+        headers={
+            "Origin": "https://www.devicestack.tech",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.status_code == 200
+    assert (
+        response.headers.get("access-control-allow-origin")
+        == "https://www.devicestack.tech"
+    )
+
+
+def test_cors_rejects_an_unknown_origin(client):
+    response = client.options(
+        "/api/v1/library/boards",
+        headers={
+            "Origin": "https://not-our-site.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.headers.get("access-control-allow-origin") is None
+
+
+def test_extra_frontend_origins_can_be_added_from_the_env(monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "FRONTEND_ORIGINS", ["https://preview.example.com"])
+    assert "https://preview.example.com" in settings.CORS_ORIGINS
+
+
 def test_rate_limit_headers(client, create_test_token):
     token = create_test_token()
     response = client.get(

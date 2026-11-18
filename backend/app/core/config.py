@@ -30,8 +30,11 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ]
+    # More browser origins allowed to call the API, e.g. a new custom domain.
+    # Comma-separated, set from the hosting dashboard.
+    FRONTEND_ORIGINS: Annotated[List[str], NoDecode] = []
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @field_validator("BACKEND_CORS_ORIGINS", "FRONTEND_ORIGINS", mode="before")
     def assemble_cors_origins(cls, v):
         if isinstance(v, str):
             value = v.strip()
@@ -55,11 +58,16 @@ class Settings(BaseSettings):
 
         The env var only lists deployed origins, so add the local dev origins
         here as well: a developer running the frontend on localhost must still
-        be able to talk to the deployed API.
+        be able to talk to the deployed API. The public frontends are always
+        allowed so a custom domain does not break the browser build.
         """
         origins = list(self.BACKEND_CORS_ORIGINS)
         for origin in (
             self.FRONTEND_URL,
+            *self.FRONTEND_ORIGINS,
+            "https://devicestack.tech",
+            "https://www.devicestack.tech",
+            "https://iot-platform-sepia.vercel.app",
             "http://localhost:3000",
             "http://127.0.0.1:3000",
         ):
