@@ -84,8 +84,13 @@ export default function FlashPage({ params }) {
 
   const handleConnect = async () => {
     setError(null);
+    if (!('serial' in navigator)) {
+      setError(
+        'This browser cannot talk to USB devices. Open this page in Chrome or Edge on a desktop computer, then try again.'
+      );
+      return;
+    }
     try {
-      if (!('serial' in navigator)) return;
       const selected = await navigator.serial.requestPort();
       setPort(selected);
       setFlashDone(false);
