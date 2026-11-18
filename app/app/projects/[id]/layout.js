@@ -100,8 +100,8 @@ export default function ProjectWorkspaceLayout({ children, params }) {
 
   // Version chip calculation
   const versionChipText = hasBlockingErrorsOrOpenFields
-    ? `v${(project?.version || 3) + 0.1} draft`
-    : project?.version_display || `v${project?.version || 3}.0`;
+    ? `v${(project?.version ?? 1) + 0.1} draft`
+    : project?.version_display || `v${project?.version ?? 1}.0`;
 
   // Status reason for footer
   let lockReason = '';
@@ -111,13 +111,17 @@ export default function ProjectWorkspaceLayout({ children, params }) {
     lockReason = `Confirm locked: ${blockingIssues[0].message}`;
   } else if (openFieldsCount > 0) {
     lockReason = `Confirm locked: ${openFieldsCount} required field(s) are open`;
+  } else if (hasGeneratedCode) {
+    lockReason = 'Plan confirmed and code generated';
   } else if (isAlreadyConfirmed) {
     lockReason = 'Plan confirmed — ready to generate code';
   } else {
     lockReason = 'All checks passed — ready to confirm plan';
   }
 
-  const deployedBaseline = project?.deployed_version || 'v3.0';
+  // Only claim a deployment when the project has actually been deployed.
+  const deployedBaseline =
+    project?.lifecycle === 'deployed' ? project?.deployed_version || 'Deployed' : null;
 
   const tabs = [
     { label: 'Plan', href: `/app/projects/${projectId}`, exact: true, icon: FileText },
@@ -320,7 +324,7 @@ export default function ProjectWorkspaceLayout({ children, params }) {
         <div className="flex items-center gap-2 shrink-0 font-mono text-[11px] text-muted-foreground">
           <span>Draft {versionChipText.split(' ')[0]} autosaved</span>
           <span>—</span>
-          <span>{deployedBaseline} is deployed</span>
+          <span>{deployedBaseline ? `${deployedBaseline} is deployed` : 'Not deployed yet'}</span>
         </div>
       </footer>
     </div>
