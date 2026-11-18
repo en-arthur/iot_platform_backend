@@ -59,6 +59,38 @@ def test_catalog_entries_declare_a_build_recipe():
     assert problems == [], "\n".join(problems)
 
 
+def test_catalog_offers_thirty_boards_people_actually_buy():
+    boards = library_repo.list_boards()
+    assert len(boards) == 30
+    ids = [b.id for b in boards]
+    assert len(set(ids)) == len(ids)
+    # Every offered board must run on a platform the build image has.
+    assert {b.platform for b in boards} <= {"espressif32", "espressif8266"}
+
+
+def test_every_offered_board_has_usable_default_pins():
+    for board in library_repo.list_boards():
+        assert len(board.pin_map) > 5, board.id
+        for role in ("i2c_sda", "i2c_scl", "relay", "button"):
+            label = board.default_pins.get(role)
+            assert label, f"{board.id} has no default {role}"
+            key = board.resolve_pin(label)
+            assert key is not None, f"{board.id}: {role}={label} is not in the pin map"
+            pin = board.pin_map[key]
+            assert not pin.is_reserved, f"{board.id}: {role} points at reserved {label}"
+            assert pin.gpio is not None
+
+
+def test_every_offered_board_generates_firmware():
+    for board in library_repo.list_boards():
+        files = ArduinoFirmwareGenerator.generate("proj-catalog", 1, _spec(board.id))
+        paths = {f.path for f in files}
+        assert "firmware/src/main.cpp" in paths, board.id
+        ini = next(f.content for f in files if f.path == "firmware/platformio.ini")
+        assert f"board = {board.pio_board}" in ini, board.id
+        assert "lib_deps" not in ini, board.id
+
+
 def test_esp32_s3_platformio_ini_is_unchanged():
     assert _platformio_ini("esp32-s3-devkitc-1") == ESP32_S3_PLATFORMIO_INI
 

@@ -24,7 +24,14 @@ TEMPLATE_NAME = os.getenv("E2B_TEMPLATE", "esp32-pio")
 # match the generated platformio.ini, because PLATFORMIO_LIBDEPS_DIR keeps
 # libraries in an env-named subdirectory.
 WARMUP_TARGETS = [
+    ("espressif32", "esp32dev", "esp32dev"),
     ("espressif32", "esp32-s3-devkitc-1", "esp32s3"),
+    ("espressif32", "esp32-s2-saola-1", "esp32s2"),
+    ("espressif32", "esp32-c3-devkitm-1", "esp32c3"),
+    ("espressif32", "esp32-c6-devkitc-1", "esp32c6"),
+    # The Arduino Nano ESP32 uses the DFU uploader, which PlatformIO fetches
+    # even for a plain compile; warm it too so its build works offline.
+    ("espressif32", "arduino_nano_esp32", "nanoesp32"),
     ("espressif8266", "nodemcuv2", "nodemcuv2"),
 ]
 
