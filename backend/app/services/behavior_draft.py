@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Tuple
+from typing import List, Tuple
 
 import httpx
 
@@ -59,27 +59,71 @@ async def _gemini_behavior(payload: BehaviorDraftRequest) -> str:
     return text.strip()
 
 
-def _template_behavior(payload: BehaviorDraftRequest) -> str:
-    """Deterministic fallback when Gemini is not configured or unreachable."""
-    sensors = ", ".join(payload.peripherals + payload.custom_peripherals) or "all attached sensors"
-    board = payload.board_id or "the target board"
-    goal = (payload.goal or "").strip().rstrip(".")
-    intro = f"On {board}, read {sensors} every 30 seconds"
-    if goal:
-        intro += f" to support this goal: {goal}"
+OUTPUT_HINTS = (
+    "relay",
+    "fan",
+    "led",
+    "motor",
+    "buzzer",
+    "valve",
+    "pump",
+    "servo",
+    "switch",
+    "solenoid",
+    "heater",
+)
 
-    return (
-        f"{intro}. Publish each reading as a JSON telemetry frame over MQTT to "
-        "devices/<device_id>/telemetry and keep the radio off between cycles, "
-        "entering deep sleep when the device is battery powered. Apply hysteresis "
-        "to actuation: energise the output when the measured value crosses the "
-        "configured upper threshold and release it once the value falls back "
-        "below the lower threshold. Publish an alert to devices/<device_id>/alerts "
-        "when a threshold stays exceeded for more than five minutes, and expose "
-        "the declared commands on devices/<device_id>/cmd with an acknowledgement "
-        "within two seconds. If a sensor read fails, log the fault locally, retry "
-        "twice, then reconnect to the broker with exponential backoff."
+
+def _split_parts(items: List[str]) -> Tuple[List[str], List[str]]:
+    """Separate things the device reads from things it switches on and off."""
+    outputs = [item for item in items if any(hint in item.lower() for hint in OUTPUT_HINTS)]
+    sensors = [item for item in items if item not in outputs]
+    return sensors, outputs
+
+
+def _template_behavior(payload: BehaviorDraftRequest) -> str:
+    """Deterministic fallback when Gemini is not configured or unreachable.
+
+    Written in plain language because the wizard shows it to users who are not
+    engineers; they can edit it before submitting.
+    """
+    sensors, outputs = _split_parts(payload.peripherals + payload.custom_peripherals)
+    read = ", ".join(sensors) or "every connected sensor"
+    board = "your board"
+    if payload.board_id:
+        try:
+            from app.db.repositories.library_repo import library_repo
+
+            found = library_repo.get_board(payload.board_id)
+            board = found.name if found else payload.board_id
+        except Exception:
+            board = payload.board_id
+    goal = (payload.goal or "").strip().rstrip(".")
+    sentences = [f"Using {board}, read {read} every 30 seconds"]
+    if outputs:
+        sentences.append(
+            f"switch {', '.join(outputs)} on when a reading goes above the limit "
+            "you set, and off again once it drops below the lower limit"
+        )
+    if goal:
+        sentences.append(f"This supports the goal: {goal}")
+    sentences.append(
+        "Send each reading to your dashboard, and keep the radio off between "
+        "readings, sleeping deeply when the device runs on batteries"
     )
+    sentences.append(
+        "Raise an alert if a reading stays above the limit for more than five minutes"
+    )
+    sentences.append(
+        "Accept the on/off commands from your dashboard and confirm each one "
+        "within two seconds"
+    )
+    sentences.append(
+        "If a sensor read fails, try twice more, then reconnect on its own"
+    )
+    return ". ".join(
+        sentence[0].upper() + sentence[1:] for sentence in sentences
+    ) + "."
 
 
 async def generate_behavior_draft(

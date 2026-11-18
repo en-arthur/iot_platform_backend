@@ -185,10 +185,16 @@ def test_behavior_draft_falls_back_to_template(client, monkeypatch):
     body = res.json()
     assert body["source"] == "template"
     text = body["behavior"]
-    assert "esp32-s3-devkitc-1" in text
-    assert "capacitive_soil_moisture" in text
-    assert "solenoid valve" in text
+    # The draft is read by non-engineers, so it uses the board's real name and
+    # plain wording instead of the internal id and broker jargon.
+    assert "ESP32-S3 DevKitC-1" in text
+    assert "esp32-s3-devkitc-1" not in text
+    lower = text.lower()
+    assert "read capacitive_soil_moisture" in lower
+    assert "switch solenoid valve" in lower
     assert "Keep soil moisture between 35% and 60%" in text
+    for jargon in ("MQTT", "hysteresis", "backoff", "JSON telemetry"):
+        assert jargon not in text
 
 
 def test_behavior_draft_requires_auth(client):
