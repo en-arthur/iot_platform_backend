@@ -80,7 +80,7 @@ export default function FlashPage({ params }) {
 
   const artifactReady = Boolean(run?.artifact_available);
   const isUf2 = run?.artifact_format === 'uf2';
-  const boardLabel = run?.board_id ? boardNames[run.board_id] || run.board_id : 'Unknown device';
+  const boardLabel = run?.board_id ? boardNames[run.board_id] || run.board_id : null;
 
   const handleConnect = async () => {
     setError(null);
@@ -289,7 +289,8 @@ export default function FlashPage({ params }) {
                       {run.artifact_name}
                     </div>
                     <div className="text-[11px] text-muted-foreground">
-                      {formatBytes(run.artifact_size_bytes) || 'Size unknown'} · {boardLabel}
+                      {formatBytes(run.artifact_size_bytes) || 'Size unknown'}
+                      {boardLabel ? ` · ${boardLabel}` : ''}
                     </div>
                   </div>
                   <Badge variant="confirmed">Built</Badge>

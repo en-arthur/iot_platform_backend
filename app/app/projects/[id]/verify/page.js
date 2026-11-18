@@ -150,7 +150,7 @@ export default function VerificationPage({ params }) {
   const status = STATUS[run?.status] || STATUS.queued;
   const sizeLabel = formatBytes(run?.artifact_size_bytes);
   const isRunning = run?.status === 'running' || run?.status === 'queued';
-  const boardLabel = run?.board_id ? boardNames[run.board_id] || run.board_id : 'Unknown device';
+  const boardLabel = run?.board_id ? boardNames[run.board_id] || run.board_id : 'Board not recorded';
 
   return (
     <div className="container max-w-7xl p-6 md:p-8 space-y-8 h-full overflow-y-auto">

@@ -59,6 +59,8 @@ class VerificationRepository:
             run_obj.artifact_size_bytes = artifact.total_bytes
             run_obj.artifact_format = artifact.format
             run_obj.artifact_available = True
+            if not run_obj.board_id:
+                run_obj.board_id = artifact.board_id
             return
 
         meta = self._artifact_meta.get(run_obj.run_id)
@@ -72,6 +74,11 @@ class VerificationRepository:
             run_obj.artifact_size_bytes = meta.get("total_bytes")
             run_obj.artifact_format = meta.get("format")
             run_obj.artifact_available = True
+            # The run row in Postgres does not carry the board, but the stored
+            # artifact metadata does, so a restarted backend still shows the
+            # right board instead of "Unknown device".
+            if not run_obj.board_id and meta.get("board_id"):
+                run_obj.board_id = meta["board_id"]
 
     # -- lifecycle -------------------------------------------------------
     def create_run(self, project_id: str, user_id: str) -> VerificationRun:
@@ -413,19 +420,23 @@ class VerificationRepository:
         run_obj = self._runs.get(run_id)
         if not run_obj:
             raise NotFoundError(f"Verification run '{run_id}' not found")
-        project_repo.get_project(run_obj.project_id, user_id)
+        project = project_repo.get_project(run_obj.project_id, user_id)
         if run_obj.status == "passed" and not run_obj.artifact_available:
             self._attach_artifact_meta(run_obj)
+        if not run_obj.board_id:
+            run_obj.board_id = project.board_id
         return run_obj
 
     def list_runs(self, project_id: str, user_id: str, limit: int = 20) -> List[VerificationRun]:
-        project_repo.get_project(project_id, user_id)
+        project = project_repo.get_project(project_id, user_id)
         runs = [run for run in self._runs.values() if run.project_id == project_id]
         runs.sort(key=lambda run: run.created_at, reverse=True)
         runs = runs[:limit]
         for run_obj in runs:
             if run_obj.status == "passed" and not run_obj.artifact_available:
                 self._attach_artifact_meta(run_obj)
+            if not run_obj.board_id:
+                run_obj.board_id = project.board_id
         return runs
 
     def get_artifact(self, run_id: str, user_id: str) -> FirmwareArtifact:
