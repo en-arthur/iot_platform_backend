@@ -316,7 +316,7 @@ export default function NewProjectWizard() {
                   />
                 </div>
               )}
-              <div className="grid gap-3 sm:grid-cols-3 max-h-[26rem] overflow-y-auto pr-1">
+              <div className="rounded-xl border border-border max-h-[22rem] overflow-y-auto divide-y divide-border">
                 {visibleBoards.map((b) => {
                   const flash = b.specs?.flash_mb;
                   const psram = b.specs?.psram_mb || 0;
@@ -327,14 +327,14 @@ export default function NewProjectWizard() {
                     ble: 'BLE only',
                     none: 'No network',
                   }[b.connectivity];
-                  const otaLimited = typeof flash === 'number' && flash < 4;
+                  const isSelected = selectedBoard === b.id;
 
                   return (
                     <div
                       key={b.id}
                       role="button"
                       tabIndex={0}
-                      aria-pressed={selectedBoard === b.id}
+                      aria-pressed={isSelected}
                       onClick={() => setSelectedBoard(b.id)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -342,26 +342,30 @@ export default function NewProjectWizard() {
                           setSelectedBoard(b.id);
                         }
                       }}
-                      className={`p-4 rounded-xl border cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary ${
-                        selectedBoard === b.id
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                          : 'border-border hover:bg-muted/50'
+                      className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary ${
+                        isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'
                       }`}
                     >
-                      <div className="flex justify-between items-center mb-2">
-                        <Cpu className="h-5 w-5 text-primary" />
-                        <div className="flex items-center gap-1.5">
-                          {selectedBoard === b.id && (
-                            <CheckCircle2 className="h-4 w-4 text-primary" />
-                          )}
-                          <Badge variant={b.status === 'tested' ? 'confirmed' : b.status === 'draft' ? 'defaulted' : 'open'}>
-                            {b.status}
-                          </Badge>
+                      <div
+                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                          isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40'
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {isSelected && <CheckCircle2 className="h-3.5 w-3.5" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-foreground">{b.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {b.vendor} · {b.mcu}
                         </div>
                       </div>
-                      <div className="font-semibold text-sm text-foreground">{b.name}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{b.mcu}</div>
-                      <div className="flex flex-wrap gap-1.5 mt-3">
+                      {b.status !== 'tested' && (
+                        <Badge variant="defaulted" className="shrink-0">
+                          {b.status}
+                        </Badge>
+                      )}
+                      <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
                         {connectivityLabel && (
                           <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                             {connectivityLabel}
@@ -369,7 +373,7 @@ export default function NewProjectWizard() {
                         )}
                         {typeof flash === 'number' && (
                           <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                            {flash} MB flash
+                            {flash} MB
                           </span>
                         )}
                         {psram > 0 && (
@@ -379,19 +383,22 @@ export default function NewProjectWizard() {
                         )}
                         {pinCount > 0 && (
                           <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                            {pinCount} pins mapped
+                            {pinCount} pins
                           </span>
                         )}
                       </div>
-                      {otaLimited && (
-                        <div className="text-[10px] text-amber-600 dark:text-amber-500 mt-2">
-                          OTA needs 4 MB flash; this board is OTA-limited.
-                        </div>
-                      )}
+                      <Cpu className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
                     </div>
                   );
                 })}
               </div>
+              {boards.length > 0 && (
+                <div className="mt-2 text-[11px] text-muted-foreground">
+                  {boardSearch
+                    ? `${visibleBoards.length} of ${boards.length} boards match`
+                    : `${boards.length} boards`}
+                </div>
+              )}
               {boards.length > 0 && visibleBoards.length === 0 && (
                 <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                   <span>No boards match “{boardQuery}”.</span>
