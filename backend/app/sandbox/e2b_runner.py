@@ -1,6 +1,8 @@
 import logging
 from typing import Any, Dict, Optional, Tuple
 
+from e2b.sandbox.commands.command_handle import CommandExitException
+
 from app.core.config import settings
 from app.sandbox.base import SandboxRunner
 
@@ -81,12 +83,18 @@ class E2BSandboxRunner(SandboxRunner):
 
     async def run_command(self, sandbox_id: str, cmd: str) -> Tuple[int, str, str]:
         sandbox = self._get(sandbox_id)
-        result = await sandbox.commands.run(
-            cmd,
-            cwd=PROJECT_DIR,
-            envs={"PLATFORMIO_CORE_DIR": PLATFORMIO_CORE_DIR},
-            timeout=settings.E2B_COMMAND_TIMEOUT_SECONDS,
-        )
+        try:
+            result = await sandbox.commands.run(
+                cmd,
+                cwd=PROJECT_DIR,
+                envs={"PLATFORMIO_CORE_DIR": PLATFORMIO_CORE_DIR},
+                timeout=settings.E2B_COMMAND_TIMEOUT_SECONDS,
+            )
+        except CommandExitException as exc:
+            # A compiler error is a command exiting non-zero, not a broken
+            # sandbox. Return the real output so the pipeline can show the
+            # compiler message and analyse it.
+            return exc.exit_code, exc.stdout or "", exc.stderr or ""
         return result.exit_code, result.stdout or "", result.stderr or ""
 
     async def download_file(self, sandbox_id: str, path: str) -> bytes:

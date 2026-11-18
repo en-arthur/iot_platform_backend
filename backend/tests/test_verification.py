@@ -244,6 +244,65 @@ async def test_artifact_uses_platformio_metadata_offsets_for_esp32s3():
 
 
 @pytest.mark.asyncio
+async def test_run_explains_stale_build_settings_without_touching_a_sandbox(
+    client, monkeypatch
+):
+    """Old projects asked PlatformIO to download libs; builds have no network."""
+    from app.db.repositories.files_repo import files_repo
+    from app.models.files import GeneratedFile
+
+    monkeypatch.setattr(
+        files_repo,
+        "list_files",
+        lambda project_id: [
+            GeneratedFile(
+                id="file-1",
+                project_id=project_id,
+                version_number=1,
+                path="firmware/platformio.ini",
+                content="[env:nodemcuv2]\nlib_deps =\n    knolleary/PubSubClient@^2.8\n",
+                file_type="config",
+            )
+        ],
+    )
+
+    run = verification_repo.create_run("proj-greenhouse-01", "test-user-uuid-1")
+    result = await verification_repo.execute_run_pipeline(run.run_id, "test-user-uuid-1")
+
+    assert result.status == "failed"
+    assert "Regenerate code" in result.logs
+    assert result.artifact_available is False
+
+
+@pytest.mark.asyncio
+async def test_sandbox_returns_exit_code_for_compiler_errors(monkeypatch):
+    """A failing `pio run` is a build failure, not a sandbox failure."""
+    from e2b.sandbox.commands.command_handle import CommandExitException
+    from app.sandbox.e2b_runner import E2BSandboxRunner
+
+    class _Commands:
+        async def run(self, *args, **kwargs):
+            raise CommandExitException(
+                stderr="src/main.cpp:4:1: error: 'D4' was not declared in this scope",
+                stdout="Compiling .pio/build/nodemcuv2/src/main.cpp.o",
+                exit_code=1,
+                error=None,
+            )
+
+    class _Sandbox:
+        commands = _Commands()
+
+    runner = E2BSandboxRunner(api_key="test-key")
+    monkeypatch.setattr(runner, "_get", lambda sandbox_id: _Sandbox())
+
+    code, stdout, stderr = await runner.run_command("sandbox-x", "pio run -d firmware")
+
+    assert code == 1
+    assert "Compiling" in stdout
+    assert "'D4' was not declared" in stderr
+
+
+@pytest.mark.asyncio
 async def test_esp8266_single_image_flashes_at_zero():
     verification_repo.runner = _FakeSandbox(None, {"firmware.bin": b"ESP8266"})
     try:

@@ -3,6 +3,11 @@ from app.core.exceptions import ValidationError
 from app.db.repositories.library_repo import library_repo
 from app.models.files import GeneratedFile
 
+# PlatformIO libraries installed in the build template (see
+# scripts/build_e2b_template.py). Generated projects point at them instead of
+# downloading them, so a verification build needs no network access.
+LIBRARY_DIR = "/opt/platformio/lib"
+
 
 class ArduinoFirmwareGenerator:
     """Generates an Arduino C++ project for any board in the hardware library.
@@ -130,11 +135,14 @@ board = {board.pio_board}
 framework = {board.framework}
 monitor_speed = 115200
 
-lib_deps =
-    knolleary/PubSubClient@^2.8
-    adafruit/Adafruit BME280 Library@^2.2.2
-    adafruit/Adafruit Unified Sensor@^1.1.9
-    bblanchon/ArduinoJson@^7.0.0
+; The build machine already has these libraries installed, so the build needs
+; no internet access. To build this folder on your own computer, install them
+; once with:
+;   pio pkg install -l "knolleary/PubSubClient@2.8.0"
+;                   -l "adafruit/Adafruit BME280 Library@2.3.0"
+;                   -l "adafruit/Adafruit Unified Sensor@1.1.15"
+;                   -l "bblanchon/ArduinoJson@7.4.3"
+lib_extra_dirs = {LIBRARY_DIR}
 
 # USER CODE BEGIN PLATFORMIO_CONFIG
 # Optional custom build flags or extra libraries

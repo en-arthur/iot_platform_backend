@@ -23,11 +23,14 @@ ESP32_S3_PLATFORMIO_INI = (
     "framework = arduino\n"
     "monitor_speed = 115200\n"
     "\n"
-    "lib_deps =\n"
-    "    knolleary/PubSubClient@^2.8\n"
-    "    adafruit/Adafruit BME280 Library@^2.2.2\n"
-    "    adafruit/Adafruit Unified Sensor@^1.1.9\n"
-    "    bblanchon/ArduinoJson@^7.0.0\n"
+    "; The build machine already has these libraries installed, so the build needs\n"
+    "; no internet access. To build this folder on your own computer, install them\n"
+    "; once with:\n"
+    ';   pio pkg install -l "knolleary/PubSubClient@2.8.0"\n'
+    ';                   -l "adafruit/Adafruit BME280 Library@2.3.0"\n'
+    ';                   -l "adafruit/Adafruit Unified Sensor@1.1.15"\n'
+    ';                   -l "bblanchon/ArduinoJson@7.4.3"\n'
+    "lib_extra_dirs = /opt/platformio/lib\n"
     "\n"
     "# USER CODE BEGIN PLATFORMIO_CONFIG\n"
     "# Optional custom build flags or extra libraries\n"

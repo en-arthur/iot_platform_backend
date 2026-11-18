@@ -149,6 +149,21 @@ class VerificationRepository:
         file_map = {f.path: f.content for f in files_list}
         project_dir = "firmware" if any(p.startswith("firmware/") for p in file_map) else "."
 
+        # Builds run without internet access, so PlatformIO cannot download
+        # libraries. Projects generated before the offline build recipe still
+        # ask for them; say exactly how to fix that instead of dumping a raw
+        # HTTP error from PlatformIO.
+        ini = file_map.get(f"{project_dir}/platformio.ini", "")
+        if "lib_deps" in ini:
+            self._fail(
+                run_obj,
+                "[BUILD SETUP] This project's build settings still ask PlatformIO to "
+                "download libraries, but builds run without internet access. Choose "
+                "'Regenerate code' on this project, then run the check again.",
+            )
+            supabase_store.save_verification_run(run_obj)
+            return run_obj
+
         try:
             sandbox_id = await self.runner.create(
                 labels={"project_id": run_obj.project_id, "run_id": run_id},
@@ -228,7 +243,26 @@ class VerificationRepository:
             project.lifecycle = "verified"
             supabase_store.save_project(project, current_spec=spec)
         except Exception as exc:
-            self._fail(run_obj, f"[VERIFICATION ERROR] {type(exc).__name__}: {exc}")
+            name = type(exc).__name__
+            # Separate "the build machine had a problem" from "your code has a
+            # problem" so a non-engineer knows whether to retry or fix the code.
+            infrastructure = any(
+                token in name
+                for token in ("HTTP", "Connection", "Timeout", "Transport", "Sandbox", "Protocol")
+            )
+            if infrastructure:
+                self._fail(
+                    run_obj,
+                    "[BUILD UNAVAILABLE] The build machine could not be reached or "
+                    "stopped responding, so this build did not finish. Run the check "
+                    f"again.\n[VERIFICATION ERROR] {name}: {exc}",
+                )
+            else:
+                self._fail(
+                    run_obj,
+                    "[VERIFICATION ERROR] Something went wrong while building, so "
+                    f"this build did not finish.\n{name}: {exc}",
+                )
             logger.exception("Verification run %s failed", run_id)
         finally:
             supabase_store.save_verification_run(run_obj)
