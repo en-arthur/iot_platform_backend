@@ -20,6 +20,7 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  Search,
 } from 'lucide-react';
 
 const STEPS = [
@@ -51,6 +52,7 @@ export default function NewProjectWizard() {
   const [boards, setBoards] = useState([]);
   const [peripherals, setPeripherals] = useState([]);
   const [libraryError, setLibraryError] = useState(false);
+  const [boardQuery, setBoardQuery] = useState('');
 
   const rankBoards = (list) => {
     // Verified boards first, then by name, so the picker leads with the
@@ -93,6 +95,16 @@ export default function NewProjectWizard() {
   useEffect(() => {
     loadLibrary();
   }, []);
+
+  // 30 boards are offered; a short search keeps the list usable.
+  const boardSearch = boardQuery.trim().toLowerCase();
+  const visibleBoards = boardSearch
+    ? boards.filter((b) =>
+        [b.name, b.vendor, b.mcu, b.id]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(boardSearch))
+      )
+    : boards;
 
   const togglePeripheral = (id) => {
     setSelectedPeripherals((prev) =>
@@ -274,7 +286,7 @@ export default function NewProjectWizard() {
               </label>
               {libraryError && (
                 <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                  <span>We could not reach the server, so this is the built-in board list.</span>
+                  <span>We could not reach the server, so this is a short built-in list. Reload to see all boards.</span>
                   <button
                     type="button"
                     onClick={loadLibrary}
@@ -291,8 +303,21 @@ export default function NewProjectWizard() {
                   Loading boards…
                 </div>
               )}
-              <div className="grid gap-3 sm:grid-cols-3">
-                {boards.map((b) => {
+              {boards.length > 0 && (
+                <div className="relative mb-3">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    className="pl-9"
+                    placeholder="Search by name, maker, or chip (e.g. C3, NodeMCU, Feather)"
+                    aria-label="Search boards"
+                    value={boardQuery}
+                    onChange={(e) => setBoardQuery(e.target.value)}
+                  />
+                </div>
+              )}
+              <div className="grid gap-3 sm:grid-cols-3 max-h-[26rem] overflow-y-auto pr-1">
+                {visibleBoards.map((b) => {
                   const flash = b.specs?.flash_mb;
                   const psram = b.specs?.psram_mb || 0;
                   const pinCount = b.pin_map ? Object.keys(b.pin_map).length : 0;
@@ -367,6 +392,18 @@ export default function NewProjectWizard() {
                   );
                 })}
               </div>
+              {boards.length > 0 && visibleBoards.length === 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                  <span>No boards match “{boardQuery}”.</span>
+                  <button
+                    type="button"
+                    onClick={() => setBoardQuery('')}
+                    className="font-semibold underline"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
