@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from typing import Any, AsyncGenerator, Dict, List
-import httpx
+
 from app.agents.guardrails import InjectionGuardrail
 from app.agents.tools import ReadOnlyAgentTools
 from app.core.config import settings
@@ -138,31 +138,15 @@ class IntentAgent:
     async def _stream_gemini_tokens(
         cls, system_instruction: str, user_prompt: str
     ) -> AsyncGenerator[str, None]:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.AI_MODEL_NAME}:streamGenerateContent?key={settings.GEMINI_API_KEY}"
-        payload = {
-            "contents": [{"parts": [{"text": user_prompt}]}],
-            "system_instruction": {"parts": [{"text": system_instruction}]},
-            "generationConfig": {"temperature": 0.2},
-        }
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            async with client.stream("POST", url, json=payload) as response:
-                if response.status_code == 200:
-                    async for raw_chunk in response.aiter_lines():
-                        if not raw_chunk:
-                            continue
-                        # Clean JSON lines from Gemini stream
-                        line = raw_chunk.strip().lstrip("[").rstrip(",").rstrip("]")
-                        if line:
-                            try:
-                                chunk_json = json.loads(line)
-                                candidates = chunk_json.get("candidates", [])
-                                if candidates:
-                                    parts = candidates[0].get("content", {}).get("parts", [])
-                                    for p in parts:
-                                        if "text" in p:
-                                            yield p["text"]
-                            except Exception:
-                                continue
+        """Stream analysis tokens via agno + Gemini.
+
+        The caller falls back to local simulated tokens if this raises, so the
+        chat still works offline or without an API key.
+        """
+        from app.agents.llm import stream as llm_stream
+
+        async for delta in llm_stream(system_instruction, user_prompt, temperature=0.2):
+            yield delta
 
     @staticmethod
     def _format_sse(event_type: str, data: Dict[str, Any]) -> str:

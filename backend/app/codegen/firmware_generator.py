@@ -44,6 +44,10 @@ class ArduinoFirmwareGenerator:
 
         pins = {}
         for field, role in cls.PIN_ROLES:
+            # Only resolve pins the spec actually declares. A wizard that omits
+            # the BME280 (or the button) must not get code for that peripheral.
+            if field not in periph:
+                continue
             label = str(
                 periph.get(field, {}).get("value") or board.default_pins.get(role) or ""
             )
@@ -91,10 +95,24 @@ class ArduinoFirmwareGenerator:
         target = cls.resolve_target(spec)
         board = target["board"]
         pins = target["pins"]
-        sda, scl = pins["i2c_sda"], pins["i2c_scl"]
-        relay, button = pins["relay"], pins["button"]
-        sda_pin, scl_pin = sda.gpio, scl.gpio
-        relay_pin, button_pin = relay.gpio, button.gpio
+        has_sensor = "i2c_sda" in pins and "i2c_scl" in pins
+        has_relay = "relay" in pins
+        has_button = "button" in pins
+        sda = pins.get("i2c_sda")
+        scl = pins.get("i2c_scl")
+        relay = pins.get("relay")
+        button = pins.get("button")
+
+        # Pin #defines are emitted only for peripherals the spec includes, so
+        # every firmware reference to a PIN_* macro is guarded by a defined macro.
+        pin_defines = ""
+        if has_sensor:
+            pin_defines += f"#define PIN_I2C_SDA         {sda.gpio}  // {sda.name}\n"
+            pin_defines += f"#define PIN_I2C_SCL         {scl.gpio}  // {scl.name}\n"
+        if has_relay:
+            pin_defines += f"#define PIN_FAN_RELAY       {relay.gpio}  // {relay.name}\n"
+        if has_button:
+            pin_defines += f"#define PIN_MANUAL_BUTTON   {button.gpio}  // {button.name}\n"
 
         deep_sleep_enabled = bool(hw.get("deep_sleep_enabled", {}).get("value", False))
         deep_sleep_sec = int(hw.get("deep_sleep_interval_seconds", {}).get("value") or 60)
@@ -167,11 +185,7 @@ lib_extra_dirs = {LIBRARY_DIR}
 
 // Auto-generated hardware pinouts and parameters from Project Spec v{version}.0
 // Board: {board.name} ({board.id})
-#define PIN_I2C_SDA         {sda_pin}  // {sda.name}
-#define PIN_I2C_SCL         {scl_pin}  // {scl.name}
-#define PIN_FAN_RELAY       {relay_pin}  // {relay.name}
-#define PIN_MANUAL_BUTTON   {button_pin}  // {button.name}
-
+{pin_defines}
 // Connectivity & MQTT Topics
 #define PLATFORM_CONNECTIVITY   "{board.connectivity}"
 {platform_ethernet_define}#define DEFAULT_WIFI_SSID       "YOUR_WIFI_SSID"
@@ -213,7 +227,9 @@ lib_extra_dirs = {LIBRARY_DIR}
  */
 
 #include <Arduino.h>
+#ifdef PIN_I2C_SDA
 #include <Wire.h>
+#endif
 #include "config.h"
 #if defined(PLATFORM_ETHERNET)
 #include <Ethernet.h>
@@ -223,8 +239,10 @@ lib_extra_dirs = {LIBRARY_DIR}
 #include <WiFi.h>
 #endif
 #include <PubSubClient.h>
+#ifdef PIN_I2C_SDA
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
+#endif
 #include <ArduinoJson.h>
 
 /* USER CODE BEGIN INCLUDES */
@@ -237,9 +255,11 @@ EthernetClient networkClient;
 WiFiClient networkClient;
 #endif
 PubSubClient mqttClient(networkClient);
+#ifdef PIN_I2C_SDA
 Adafruit_BME280 bme;
 
 bool bmeAvailable = false;
+#endif
 unsigned long lastTelemetryTime = 0;
 
 /* USER CODE BEGIN CUSTOM_DECLARATIONS */
@@ -255,6 +275,7 @@ void onMqttCommandReceived(char* topic, byte* payload, unsigned int length) {{
     Serial.printf("[MQTT COMMAND] Topic: %s | Command: %s\\n", topic, message.c_str());
 
     // Strict command matching declared in Spec Behavior Section
+#ifdef PIN_FAN_RELAY
     if (message == "TRIGGER_FAN_FORCE_ON") {{
         digitalWrite(PIN_FAN_RELAY, HIGH);
         Serial.println("[ACTUATION] Fan relay energized (ON)");
@@ -262,6 +283,9 @@ void onMqttCommandReceived(char* topic, byte* payload, unsigned int length) {{
         digitalWrite(PIN_FAN_RELAY, LOW);
         Serial.println("[ACTUATION] Fan relay de-energized (OFF)");
     }} else if (message == "REBOOT_NODE") {{
+#else
+    if (message == "REBOOT_NODE") {{
+#endif
         Serial.println("[SYSTEM] Reboot command received. Restarting MCU...");
         delay(500);
         ESP.restart();
@@ -335,10 +359,15 @@ void setup() {{
     Serial.println("==========================================");
 
     // Initialize GPIO Pin modes
+#ifdef PIN_FAN_RELAY
     pinMode(PIN_FAN_RELAY, OUTPUT);
     digitalWrite(PIN_FAN_RELAY, LOW);
+#endif
+#ifdef PIN_MANUAL_BUTTON
     pinMode(PIN_MANUAL_BUTTON, INPUT_PULLUP);
+#endif
 
+#ifdef PIN_I2C_SDA
     // Initialize I2C Bus with assigned pins from Spec
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
     if (!bme.begin(0x76, &Wire)) {{
@@ -347,6 +376,7 @@ void setup() {{
         bmeAvailable = true;
         Serial.println("[SENSOR] BME280 sensor initialized successfully.");
     }}
+#endif
 
     // Network & MQTT setup
     setupNetwork();
@@ -359,9 +389,15 @@ void setup() {{
 }}
 
 void publishTelemetry() {{
+#ifdef PIN_I2C_SDA
     float temp_c = bmeAvailable ? bme.readTemperature() : 24.5;
     float humidity_pct = bmeAvailable ? bme.readHumidity() : 55.0;
     float pressure_hpa = bmeAvailable ? (bme.readPressure() / 100.0F) : 1013.25;
+#else
+    float temp_c = 0.0;
+    float humidity_pct = 0.0;
+    float pressure_hpa = 0.0;
+#endif
     float battery_v = 3.85;
 
     // Serialize JSON payload matching Data Model

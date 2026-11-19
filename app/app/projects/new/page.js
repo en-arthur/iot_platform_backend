@@ -174,15 +174,19 @@ export default function NewProjectWizard() {
         description,
         board_id: selectedBoard,
         interface_type: interfaceType,
+        peripherals: selectedPeripherals,
         custom_peripherals: customList,
       });
 
       // Synthesize firmware, cloud backend and interface so the workspace opens
-      // with real code instead of an empty placeholder.
+      // with real code instead of an empty placeholder. Surface a failure
+      // instead of silently landing on an empty Code tab.
       try {
         await api.generateProjectCode(project.id);
       } catch (genErr) {
-        console.warn('Code generation failed:', genErr.message);
+        alert(
+          `The project was created, but code generation failed: ${genErr.message}.\n\nYou can regenerate it from the Code tab.`
+        );
       }
 
       router.push(`/app/projects/${project.id}`);

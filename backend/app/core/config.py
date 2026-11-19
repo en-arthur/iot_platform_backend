@@ -106,7 +106,7 @@ class Settings(BaseSettings):
 
     # AI Model Provider (Defaults to Gemini)
     AI_MODEL_PROVIDER: str = "gemini"  # gemini | openai | anthropic
-    AI_MODEL_NAME: str = "gemini-2.5-flash"
+    AI_MODEL_NAME: str = "gemini-3.8-flash"
     GEMINI_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
     ANTHROPIC_API_KEY: Optional[str] = None

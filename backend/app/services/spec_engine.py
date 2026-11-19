@@ -40,6 +40,10 @@ class SpecEngine:
         defaults = board.default_pins if board else {}
         clock_mhz = board.specs.clock_mhz if board else 240
 
+        peripherals_fields = SpecEngine._build_peripheral_fields(
+            project_input.peripherals or [], project_input.custom_peripherals or [], defaults
+        )
+
         spec = {
             "metadata": {
                 "title": "1. Project Metadata",
@@ -99,33 +103,7 @@ class SpecEngine:
             },
             "peripherals": {
                 "title": "3. Peripherals & Pin Multiplexing",
-                "fields": {
-                    "bme280_sda_pin": {
-                        "value": defaults.get("i2c_sda", "GPIO4"),
-                        "state": "confirmed",
-                        "source": "user",
-                    },
-                    "bme280_scl_pin": {
-                        "value": defaults.get("i2c_scl", "GPIO5"),
-                        "state": "confirmed",
-                        "source": "user",
-                    },
-                    "bme280_i2c_addr": {
-                        "value": "0x76",
-                        "state": "defaulted",
-                        "source": "library",
-                    },
-                    "fan_relay_pin": {
-                        "value": defaults.get("relay", "GPIO9"),
-                        "state": "confirmed",
-                        "source": "user",
-                    },
-                    "button_pin": {
-                        "value": defaults.get("button", "GPIO10"),
-                        "state": "confirmed",
-                        "source": "user",
-                    },
-                },
+                "fields": peripherals_fields,
             },
             "behavior": {
                 "title": "4. Runtime Behavior & State Machine",
@@ -298,6 +276,64 @@ class SpecEngine:
             },
         }
         return spec
+
+    @staticmethod
+    def _build_peripheral_fields(
+        selected: List[str], custom: List[str], defaults: Dict[str, str]
+    ) -> Dict[str, Any]:
+        """Build the Section 3 peripheral fields from the wizard's selection.
+
+        An empty ``selected`` list keeps the reference BME280 + relay + button
+        set, so the demo project and any caller that omits peripherals keep the
+        pin defaults the rest of the platform (and the tests) rely on. A
+        non-empty list only includes the parts the engineer actually picked, so
+        code generation emits firmware for the hardware they chose.
+        """
+        use_defaults = not selected
+        chosen = set(selected)
+        fields: Dict[str, Any] = {}
+
+        if use_defaults or "bme280" in chosen:
+            fields["bme280_sda_pin"] = {
+                "value": defaults.get("i2c_sda", "GPIO4"),
+                "state": "confirmed",
+                "source": "user",
+            }
+            fields["bme280_scl_pin"] = {
+                "value": defaults.get("i2c_scl", "GPIO5"),
+                "state": "confirmed",
+                "source": "user",
+            }
+            fields["bme280_i2c_addr"] = {
+                "value": "0x76",
+                "state": "defaulted",
+                "source": "library",
+            }
+        if use_defaults or "relay-module-5v" in chosen:
+            fields["fan_relay_pin"] = {
+                "value": defaults.get("relay", "GPIO9"),
+                "state": "confirmed",
+                "source": "user",
+            }
+        if use_defaults or "push-button" in chosen:
+            fields["button_pin"] = {
+                "value": defaults.get("button", "GPIO10"),
+                "state": "confirmed",
+                "source": "user",
+            }
+        if "ssd1306-oled" in chosen:
+            fields["oled_display"] = {
+                "value": 'SSD1306 0.96" I2C OLED',
+                "state": "confirmed",
+                "source": "user",
+            }
+        if custom:
+            fields["custom_components"] = {
+                "value": list(custom),
+                "state": "confirmed",
+                "source": "user",
+            }
+        return fields
 
     @staticmethod
     def patch_field(

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -25,31 +25,75 @@ export default function CodeViewerPage({ params }) {
   const projectId = unwrappedParams.id;
 
   const [files, setFiles] = useState([]);
-  const [selectedFilePath, setSelectedFilePath] = useState('firmware/main.cpp');
+  const [selectedFilePath, setSelectedFilePath] = useState('');
   const [fileContent, setFileContent] = useState('');
   const [originalContent, setOriginalContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [generating, setGenerating] = useState(false);
+  // Guard so a project with no files auto-generates exactly once, never in a loop.
+  const autoGenAttempted = useRef(false);
+
+  const applyFiles = (fileList) => {
+    setFiles(fileList);
+    // Prefer the firmware entry point the backend actually generates, then
+    // fall back to the first file. The old default ('firmware/main.cpp')
+    // matched nothing and silently showed platformio.ini instead.
+    const preferred = fileList.find((f) => f.path === 'firmware/src/main.cpp');
+    const current = preferred || fileList[0];
+    if (current) {
+      setSelectedFilePath(current.path);
+      setFileContent(current.content);
+      setOriginalContent(current.content);
+    } else {
+      setSelectedFilePath('');
+      setFileContent('');
+      setOriginalContent('');
+    }
+  };
+
+  const generateCode = async () => {
+    setGenerating(true);
+    setLoadError('');
+    try {
+      await api.generateProjectCode(projectId);
+      const fileList = await api.getFiles(projectId);
+      applyFiles(fileList);
+    } catch (err) {
+      setLoadError(err.message || 'Code generation failed.');
+    } finally {
+      setGenerating(false);
+      setLoading(false);
+    }
+  };
+
+  const loadFiles = async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const fileList = await api.getFiles(projectId);
+      applyFiles(fileList);
+      // Reliable by design: if a project has no code yet (e.g. generation was
+      // interrupted), generate it automatically once so the Code tab always
+      // opens with real files — no manual regenerate button required.
+      if (fileList.length === 0 && !autoGenAttempted.current) {
+        autoGenAttempted.current = true;
+        await generateCode();
+        return;
+      }
+    } catch (err) {
+      setLoadError(err.message || 'Could not load generated files.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadFiles() {
-      setLoading(true);
-      try {
-        const fileList = await api.getFiles(projectId);
-        setFiles(fileList);
-        const current = fileList.find((f) => f.path === selectedFilePath) || fileList[0];
-        if (current) {
-          setSelectedFilePath(current.path);
-          setFileContent(current.content);
-          setOriginalContent(current.content);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
     loadFiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   const activeFile = files.find((f) => f.path === selectedFilePath);
@@ -180,10 +224,29 @@ export default function CodeViewerPage({ params }) {
 
         {/* Center/Right Column: Monaco Editor (Col 4-12) */}
         <div className="col-span-12 md:col-span-9 flex flex-col bg-slate-950">
-          {loading ? (
+          {loading || generating ? (
             <div className="flex-1 flex items-center justify-center text-xs text-slate-400">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              <span>Loading Monaco editor...</span>
+              <span>
+                {generating
+                  ? 'Generating code from your project spec...'
+                  : 'Loading generated files...'}
+              </span>
+            </div>
+          ) : files.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-6">
+              {loadError ? (
+                <AlertTriangle className="h-8 w-8 text-amber-500" />
+              ) : (
+                <FileCode2 className="h-8 w-8 text-muted-foreground/50" />
+              )}
+              <p className="text-sm font-medium text-foreground">
+                {loadError ? 'Could not generate code' : 'No code generated yet'}
+              </p>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                {loadError ||
+                  'Code is generated automatically when you create the project. Reload the page to try again.'}
+              </p>
             </div>
           ) : (
             <Editor

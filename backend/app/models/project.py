@@ -14,6 +14,10 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
+    # Hardware peripheral IDs chosen in the wizard (e.g. "bme280",
+    # "relay-module-5v", "push-button"). Empty keeps the reference BME280 +
+    # relay + button peripheral set so existing callers and demos are stable.
+    peripherals: Optional[List[str]] = Field(default_factory=list)
     custom_peripherals: Optional[List[str]] = Field(default_factory=list)
     # Collected by the wizard so the mandatory metadata.target_deployment_date
     # field starts confirmed instead of blocking the first spec confirmation.

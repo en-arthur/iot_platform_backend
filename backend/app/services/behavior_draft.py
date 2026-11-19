@@ -2,8 +2,6 @@ import json
 import logging
 from typing import List, Tuple
 
-import httpx
-
 from app.core.config import settings
 from app.models.project import BehaviorDraftRequest
 
@@ -35,27 +33,15 @@ def _context(payload: BehaviorDraftRequest) -> str:
 
 
 async def _gemini_behavior(payload: BehaviorDraftRequest) -> str:
-    url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{settings.AI_MODEL_NAME}:generateContent?key={settings.GEMINI_API_KEY}"
-    )
-    body = {
-        "contents": [{"parts": [{"text": _context(payload)}]}],
-        "system_instruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]},
-        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 512},
-    }
-    async with httpx.AsyncClient(timeout=25.0) as client:
-        response = await client.post(url, json=body)
-    if response.status_code != 200:
-        raise RuntimeError(f"Gemini HTTP {response.status_code}: {response.text[:200]}")
+    """Draft the behavior via agno + Gemini.
 
-    candidates = response.json().get("candidates", [])
-    if not candidates:
-        return ""
-    text = "".join(
-        part.get("text", "")
-        for part in candidates[0].get("content", {}).get("parts", [])
-    )
+    The caller falls back to the deterministic template when this raises or
+    returns an empty string, so a missing/unreachable model never breaks the
+    wizard.
+    """
+    from app.agents.llm import complete
+
+    text = await complete(SYSTEM_INSTRUCTION, _context(payload), temperature=0.4)
     return text.strip()
 
 
