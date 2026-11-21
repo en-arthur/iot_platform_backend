@@ -92,7 +92,7 @@ export default function LandingPage() {
                   custom={2}
                   className="text-lg text-muted-foreground sm:text-xl max-w-2xl mx-auto lg:mx-0 leading-relaxed"
                 >
-                  Describe what your device does in simple words. We turn your requirements into ready-to-run device code, a cloud backend, and a web dashboard—tested and verified on real hardware.
+                  Describe what your device does in simple words. We turn your requirements into ready-to-run device code, a cloud backend, and a web dashboard—no coding needed.
                 </motion.p>
 
                 <motion.div
@@ -102,59 +102,91 @@ export default function LandingPage() {
                 >
                   <Link href="/sign-up">
                     <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-7 shadow-lg hover:shadow-primary/20 transition-all">
-                      Start Building Free
+                      Create Your Device
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                   <Link href="/sign-in">
                     <Button variant="outline" size="lg" className="w-full sm:w-auto text-base hover:bg-muted/80">
-                      Sign In to Console
+                      Sign In
                     </Button>
                   </Link>
                 </motion.div>
 
                 <motion.p variants={fadeInUp} custom={4} className="text-xs text-muted-foreground pt-1">
-                  No credit card required • Strict contract validation • Single source-of-truth spec
+                  Free to start • No credit card required • Works with hardware you already own
                 </motion.p>
               </motion.div>
 
-              {/* Product Visual / Spec Architecture Card */}
+              {/* Application Demo Visual */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
                 className="lg:col-span-5"
               >
-                <div className="rounded-2xl border border-border bg-card/90 p-5 shadow-2xl backdrop-blur relative overflow-hidden group hover:border-primary/40 transition-all">
-                  <div className="flex items-center justify-between pb-3 border-b border-border/60">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-red-500/80 inline-block" />
-                      <span className="h-3 w-3 rounded-full bg-amber-500/80 inline-block" />
-                      <span className="h-3 w-3 rounded-full bg-emerald-500/80 inline-block" />
-                      <span className="text-xs font-mono text-muted-foreground ml-2">spec_v1.0.json</span>
+                <div className="rounded-2xl border border-border bg-gradient-to-br from-card/95 to-card/80 p-6 shadow-2xl backdrop-blur relative overflow-hidden group hover:border-primary/40 transition-all">
+                  {/* Demo Header */}
+                  <div className="flex items-center justify-between pb-4 border-b border-border/60">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Activity className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">Smart Greenhouse Monitor</h3>
+                        <p className="text-xs text-muted-foreground">Live Dashboard</p>
+                      </div>
                     </div>
-                    <Badge variant="confirmed">Confirmed</Badge>
+                    <Badge variant="confirmed" className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Online
+                    </Badge>
                   </div>
-                  <div className="mt-4 space-y-3 font-mono text-xs text-slate-300 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                    <div className="text-emerald-400 font-semibold">// 1. Hardware Definition</div>
-                    <div>&quot;mcu&quot;: <span className="text-amber-300">&quot;ESP32-S3 240MHz&quot;</span>,</div>
-                    <div>&quot;bus&quot;: <span className="text-sky-300">&quot;I2C (SDA: GPIO4, SCL: GPIO5)&quot;</span>,</div>
-                    <div className="text-purple-400 font-semibold mt-3">// 2. Behavioral Rule</div>
-                    <div>&quot;threshold&quot;: <span className="text-amber-300">&quot;temperature &gt; 30.0°C&quot;</span>,</div>
-                    <div>&quot;action&quot;: <span className="text-emerald-300">&quot;TRIGGER_FAN_FORCE_ON&quot;</span>,</div>
-                    <div className="text-sky-400 font-semibold mt-3">// 3. Target Output Bundle</div>
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span>ESP-IDF C++ Firmware (Dual OTA)</span>
+
+                  {/* Telemetry Cards */}
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Temperature</div>
+                      <div className="text-2xl font-bold text-foreground">28.4°C</div>
+                      <div className="text-[10px] text-emerald-600 mt-0.5">Normal range</div>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span>FastAPI Telemetry Ingestion</span>
+                    <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Humidity</div>
+                      <div className="text-2xl font-bold text-foreground">62%</div>
+                      <div className="text-[10px] text-sky-600 mt-0.5">Optimal</div>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span>Web App Control Center</span>
+                    <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Soil Moisture</div>
+                      <div className="text-2xl font-bold text-foreground">45%</div>
+                      <div className="text-[10px] text-amber-600 mt-0.5">Water soon</div>
                     </div>
+                    <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Light Level</div>
+                      <div className="text-2xl font-bold text-foreground">850 lx</div>
+                      <div className="text-[10px] text-emerald-600 mt-0.5">Adequate</div>
+                    </div>
+                  </div>
+
+                  {/* Controls */}
+                  <div className="mt-5 space-y-2">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Quick Actions</div>
+                    <div className="flex gap-2">
+                      <button className="flex-1 rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-xs font-medium hover:bg-primary/10 hover:border-primary/40 transition-colors">
+                        💧 Water Now
+                      </button>
+                      <button className="flex-1 rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-xs font-medium hover:bg-primary/10 hover:border-primary/40 transition-colors">
+                        🌡️ Set Alert
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Footer Status */}
+                  <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      Last sync: 2 seconds ago
+                    </span>
+                    <span>Device ID: GH-001</span>
                   </div>
                 </div>
               </motion.div>
@@ -172,10 +204,10 @@ export default function LandingPage() {
               variants={fadeInUp}
             >
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Why IoT Development Is Still Painful
+                Building Connected Devices Shouldn&apos;t Be This Hard
               </h2>
               <p className="mt-4 text-base text-muted-foreground max-w-2xl mx-auto">
-                Building connected hardware usually means juggling mismatched pinouts, writing tedious driver glue code, and building fragmented cloud APIs from scratch.
+                Most smart device projects fail before launch. Wrong pins, mismatched code, broken cloud connections—we handle all of that for you.
               </p>
             </motion.div>
 
@@ -191,9 +223,9 @@ export default function LandingPage() {
                 <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center mb-4">
                   <AlertTriangle className="h-5 w-5 text-destructive" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Pin Collisions & Bus Lockups</h3>
+                <h3 className="text-lg font-semibold text-foreground">Wrong Pin = Broken Device</h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  Assigning a shared GPIO to both an I2C line and a switch bricks your prototype during field deployment.
+                  Connect the wrong pin and your device won&apos;t work. We make sure every connection is correct before you build anything.
                 </p>
               </motion.div>
 
@@ -208,9 +240,9 @@ export default function LandingPage() {
                 <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
                   <RefreshCw className="h-5 w-5 text-amber-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Backend & Firmware Desync</h3>
+                <h3 className="text-lg font-semibold text-foreground">Cloud & Device Out of Sync</h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  Changing a sensor metric unit or payload schema breaks cloud ingestion parsers and dashboards silently.
+                  Change your sensor? Your dashboard breaks. We keep your device code and cloud dashboard perfectly in sync, automatically.
                 </p>
               </motion.div>
 
@@ -225,9 +257,9 @@ export default function LandingPage() {
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                   <Lock className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Unverified AI Hallucinations</h3>
+                <h3 className="text-lg font-semibold text-foreground">Security Is an Afterthought</h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  Generic LLMs generate code for hardware registers that don&apos;t exist. We enforce strict schema rules and real compilation.
+                  Most DIY projects have zero security. We build in encryption, secure connections, and safe updates from day one.
                 </p>
               </motion.div>
             </div>
@@ -239,10 +271,10 @@ export default function LandingPage() {
           <div className="container max-w-7xl px-4 sm:px-8">
             <div className="text-center max-w-3xl mx-auto">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Built for Hardware & Systems Engineers
+                Everything You Need to Launch Your Device
               </h2>
               <p className="mt-3 text-muted-foreground">
-                Every feature respects the physical reality of embedded systems and silicon constraints.
+                From idea to working product. We handle the technical details so you can focus on what matters.
               </p>
             </div>
 
@@ -250,33 +282,33 @@ export default function LandingPage() {
               {[
                 {
                   icon: Layers,
-                  title: 'One Source-of-Truth Spec',
-                  desc: '12 structured sections cover metadata, peripherals, MQTT connectivity, security, OTA rollback, and provenance.',
+                  title: 'One Master Plan for Everything',
+                  desc: 'Your project specs, sensors, commands, and security settings all live in one place. Change something once, everything updates.',
                 },
                 {
                   icon: Cpu,
-                  title: 'Verified Hardware Library',
-                  desc: 'Pre-validated pinouts, I2C addresses, and timing characteristics for popular MCUs and sensors.',
+                  title: 'Works with Real Hardware',
+                  desc: 'Pre-tested with popular boards you can buy today. No guessing which pins to use or why things don&apos;t work.',
                 },
                 {
                   icon: Activity,
-                  title: 'Build & Test on Real Silicon',
-                  desc: 'Automated test suites run against virtual QEMU emulators and submit physical on-device self-test reports.',
+                  title: 'Test Before You Build',
+                  desc: 'Verify your device code compiles correctly before flashing. Catch errors early, save time.',
                 },
                 {
                   icon: Terminal,
-                  title: 'Dashboard or Full Web App',
-                  desc: 'Choose between pure telemetry monitoring or an interactive Web App with RBAC and authorized device commands.',
+                  title: 'Dashboard or Full Control Panel',
+                  desc: 'Choose simple monitoring dashboards or full web apps where users can send commands to physical devices.',
                 },
                 {
                   icon: ShieldCheck,
                   title: 'Secure by Default',
-                  desc: 'Mutual TLS 1.3, ECDSA P-256 certificates, AES flash encryption, and one-time provisioned device secrets.',
+                  desc: 'Built-in encryption, secure connections, and one-time device passwords. No security expertise needed.',
                 },
                 {
                   icon: Radio,
-                  title: 'Dual-Partition OTA Rollback',
-                  desc: 'Over-the-air firmware upgrades automatically revert to partition A if on-boot self-tests fail.',
+                  title: 'Safe Firmware Updates',
+                  desc: 'Update your devices over Wi-Fi. If something goes wrong, they automatically roll back to the working version.',
                 },
               ].map((feat, i) => {
                 const Icon = feat.icon;
@@ -305,55 +337,135 @@ export default function LandingPage() {
           <div className="container max-w-7xl px-4 sm:px-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
               <div>
-                <h2 className="text-3xl font-bold tracking-tight text-foreground">Supported Hardware</h2>
-                <p className="mt-2 text-muted-foreground">Verified pinouts and toolchain recipes ready out-of-the-box.</p>
+                <h2 className="text-3xl font-bold tracking-tight text-foreground">Compatible Hardware</h2>
+                <p className="mt-2 text-muted-foreground">Works with boards you can buy today. Plug in and start building.</p>
               </div>
               <a
                 href="mailto:support@devicestack.io?subject=Request%20Board%20Support"
                 className="mt-4 md:mt-0 text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
               >
-                Request a board <ChevronRight className="h-4 w-4" />
+                Need a different board? <ChevronRight className="h-4 w-4" />
               </a>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {/* ESP32-S3 DevKitC-1 */}
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 whileHover={{ y: -4 }}
-                className="rounded-xl border border-border bg-card p-6 shadow-sm transition-all"
+                className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all"
               >
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-foreground">ESP32-S3 DevKitC-1</h3>
                   <Badge variant="confirmed">Tested</Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Xtensa dual-core 240MHz, 8MB Flash, 2MB PSRAM, Wi-Fi 4 + BLE 5.0, Native USB OTG.
+                <p className="text-xs text-muted-foreground mb-3">
+                  Dual-core 240MHz, 8MB Flash, Wi-Fi + BLE, Native USB. Flash directly from your browser.
                 </p>
-                <div className="text-xs font-mono bg-muted p-2.5 rounded">
-                  Status: Full Web Serial Flashing + HIL QEMU Simulation
+                <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
+                  Espressif • ~$8 USD
                 </div>
               </motion.div>
 
+              {/* ESP32 DevKit V1 */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.05 }}
+                whileHover={{ y: -4 }}
+                className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground">ESP32 DevKit V1</h3>
+                  <Badge variant="confirmed">Tested</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Classic ESP32, 240MHz dual-core, 4MB Flash, Wi-Fi + Bluetooth. Most common budget board.
+                </p>
+                <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
+                  DOIT / Espressif • ~$5 USD
+                </div>
+              </motion.div>
+
+              {/* ESP32-C3 */}
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 }}
                 whileHover={{ y: -4 }}
-                className="rounded-xl border border-border bg-card p-6 shadow-sm transition-all"
+                className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-foreground">Raspberry Pi Pico W</h3>
-                  <Badge variant="defaulted">Draft</Badge>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground">ESP32-C3 SuperMini</h3>
+                  <Badge variant="confirmed">Tested</Badge>
                 </div>
-                <p className="text-xs text-muted-foreground mb-4">
-                  RP2040 Dual ARM Cortex-M0+, CYW43439 802.11n wireless, UF2 bootloader.
+                <p className="text-xs text-muted-foreground mb-3">
+                  RISC-V 160MHz, 4MB Flash, Wi-Fi + BLE 5.0. Ultra compact form factor for space-constrained projects.
                 </p>
-                <div className="text-xs font-mono bg-muted p-2.5 rounded">
-                  Status: Pinout mapped, UF2 binary export available
+                <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
+                  Espressif • ~$3 USD
                 </div>
+              </motion.div>
+
+              {/* NodeMCU */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.15 }}
+                whileHover={{ y: -4 }}
+                className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground">NodeMCU ESP8266</h3>
+                  <Badge variant="confirmed">Tested</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  ESP8266 80MHz, 4MB Flash, Wi-Fi 2.4GHz. Popular for simple IoT projects and learning.
+                </p>
+                <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
+                  NodeMCU • ~$4 USD
+                </div>
+              </motion.div>
+
+              {/* Raspberry Pi Pico W */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                whileHover={{ y: -4 }}
+                className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground">Raspberry Pi Pico W</h3>
+                  <Badge variant="defaulted">Coming Soon</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  RP2040 dual ARM Cortex-M0+, 2MB Flash, Wi-Fi. Drag-and-drop UF2 flashing.
+                </p>
+                <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
+                  Raspberry Pi • ~$6 USD
+                </div>
+              </motion.div>
+
+              {/* More Coming */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.25 }}
+                className="rounded-xl border border-dashed border-border bg-muted/20 p-5 flex flex-col items-center justify-center text-center"
+              >
+                <Cpu className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm font-medium text-foreground">30+ More Boards</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ESP32-S2, ESP32-C6, WEMOS D1 Mini, and more ESP32/ESP8266 variants supported
+                </p>
               </motion.div>
             </div>
           </div>
@@ -362,35 +474,45 @@ export default function LandingPage() {
         {/* FAQ Section */}
         <section className="py-20 bg-muted/20 border-b border-border/40">
           <div className="container max-w-4xl px-4 sm:px-8">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground text-center">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground text-center">Common Questions</h2>
             <div className="mt-10 space-y-4">
               <div className="rounded-xl border border-border bg-card p-5">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <HelpCircle className="h-4 w-4 text-primary" />
-                  What is the difference between a Dashboard and a Web App?
+                  Do I need to know how to code?
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  A <strong>Dashboard</strong> is read-only telemetry monitoring (charts, tiles, alert thresholds). A <strong>Web App</strong> bundles full user authentication, role-based controls, and interactive command dispatch that triggers physical actuators according to the behavior section.
+                  No. Describe what you want your device to do in plain English, and we generate all the code automatically. You can review it if you want, or just flash it to your device.
                 </p>
               </div>
 
               <div className="rounded-xl border border-border bg-card p-5">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <HelpCircle className="h-4 w-4 text-primary" />
-                  Does AI directly write code to my MCU without my consent?
+                  What&apos;s the difference between a Dashboard and a Web App?
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  Never. AI only produces <strong>Spec Proposals</strong> with an explicit breakdown of old vs new values. You must review and click <strong>Approve</strong>. Spec confirmation is blocked if any electrical or completeness errors exist.
+                  A <strong>Dashboard</strong> shows your device data (charts, numbers, alerts). A <strong>Web App</strong> lets you control your device remotely—turn things on/off, change settings, and more.
                 </p>
               </div>
 
               <div className="rounded-xl border border-border bg-card p-5">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <HelpCircle className="h-4 w-4 text-primary" />
-                  Can I flash boards directly from the web browser?
+                  Can I flash my board directly from the browser?
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                  Yes! We use the Web Serial API combined with <code>esptool-js</code>. Connect your ESP32-S3 over standard USB-C in Chrome, Edge, or Opera, and flash compiled firmware binaries in seconds.
+                  Yes! For ESP32-S3 boards, just plug in your device via USB, click Flash, and you&apos;re done. No software to install. Works in Chrome, Edge, and Opera.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-5">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4 text-primary" />
+                  Is my data secure?
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  Yes. All connections between your devices and the cloud are encrypted. Each device gets a unique password that only you see once. We follow industry security standards.
                 </p>
               </div>
             </div>
@@ -401,14 +523,14 @@ export default function LandingPage() {
         <section className="py-20 text-center">
           <div className="container max-w-4xl px-4 sm:px-8">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Ready to Build Your Next Connected Device?
+              Ready to Bring Your Idea to Life?
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Describe your device, confirm the spec, and flash real hardware today.
+              Start building your smart device today. No coding required, no credit card needed.
             </p>
             <div className="mt-8 flex justify-center gap-4">
               <Link href="/sign-up">
-                <Button size="lg" className="px-8 shadow-lg">Get Started Free</Button>
+                <Button size="lg" className="px-8 shadow-lg">Create Your Device Free</Button>
               </Link>
             </div>
           </div>
