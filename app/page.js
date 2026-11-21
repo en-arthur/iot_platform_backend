@@ -366,10 +366,10 @@ export default function LandingPage() {
                   <Badge variant="confirmed">Tested</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Dual-core 240MHz, 8MB Flash, Wi-Fi + BLE, Native USB. Flash directly from your browser.
+                  Popular development board with built-in Wi-Fi and Bluetooth. Great for most IoT projects.
                 </p>
                 <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
-                  Espressif • ~$8 USD
+                  Espressif
                 </div>
               </motion.div>
 
@@ -387,10 +387,10 @@ export default function LandingPage() {
                   <Badge variant="confirmed">Tested</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Classic ESP32, 240MHz dual-core, 4MB Flash, Wi-Fi + Bluetooth. Most common budget board.
+                  Classic ESP32 board. Widely available and well-documented. Perfect for beginners.
                 </p>
                 <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
-                  DOIT / Espressif • ~$5 USD
+                  DOIT / Espressif
                 </div>
               </motion.div>
 
@@ -408,10 +408,10 @@ export default function LandingPage() {
                   <Badge variant="confirmed">Tested</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  RISC-V 160MHz, 4MB Flash, Wi-Fi + BLE 5.0. Ultra compact form factor for space-constrained projects.
+                  Ultra compact board with Wi-Fi and Bluetooth. Ideal for space-constrained projects.
                 </p>
                 <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
-                  Espressif • ~$3 USD
+                  Espressif
                 </div>
               </motion.div>
 
@@ -429,10 +429,10 @@ export default function LandingPage() {
                   <Badge variant="confirmed">Tested</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  ESP8266 80MHz, 4MB Flash, Wi-Fi 2.4GHz. Popular for simple IoT projects and learning.
+                  Budget-friendly Wi-Fi board. Great for simple IoT projects and learning.
                 </p>
                 <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
-                  NodeMCU • ~$4 USD
+                  NodeMCU
                 </div>
               </motion.div>
 
@@ -450,10 +450,10 @@ export default function LandingPage() {
                   <Badge variant="defaulted">Coming Soon</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  RP2040 dual ARM Cortex-M0+, 2MB Flash, Wi-Fi. Drag-and-drop UF2 flashing.
+                  Popular ARM-based board with Wi-Fi. Easy drag-and-drop flashing.
                 </p>
                 <div className="text-[10px] font-mono bg-muted px-2 py-1.5 rounded">
-                  Raspberry Pi • ~$6 USD
+                  Raspberry Pi
                 </div>
               </motion.div>
 
