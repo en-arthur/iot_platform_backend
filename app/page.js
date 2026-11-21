@@ -71,59 +71,63 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="relative overflow-hidden pt-20 pb-16 md:pt-28 md:pb-24 border-b border-border/40">
           <div className="container max-w-7xl px-4 sm:px-8">
-            <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
+            <div className="text-center space-y-6">
+              <motion.h1
+                initial="hidden"
+                animate="visible"
+                variants={fadeInUp}
+                custom={1}
+                className="text-4xl font-extrabold tracking-tighter sm:text-5xl lg:text-6xl text-foreground font-heading"
+              >
+                From Hardware Description to a <span className="text-primary underline decoration-primary/40 underline-offset-8">Working Device</span> in Minutes.
+              </motion.h1>
+
+              <motion.p
+                initial="hidden"
+                animate="visible"
+                variants={fadeInUp}
+                custom={2}
+                className="text-lg text-muted-foreground sm:text-xl max-w-2xl mx-auto leading-relaxed"
+              >
+                Describe what your device does in simple words. We turn your requirements into ready-to-run device code, a cloud backend, and a web dashboard—no coding needed.
+              </motion.p>
+
               <motion.div
                 initial="hidden"
                 animate="visible"
                 variants={fadeInUp}
-                custom={0}
-                className="lg:col-span-7 space-y-6 text-center lg:text-left"
+                custom={3}
+                className="flex flex-col sm:flex-row gap-4 justify-center pt-2"
               >
-                <motion.h1
-                  variants={fadeInUp}
-                  custom={1}
-                  className="text-4xl font-extrabold tracking-tighter sm:text-5xl lg:text-6xl text-foreground font-heading"
-                >
-                  From Hardware Description to a <span className="text-primary underline decoration-primary/40 underline-offset-8">Working Device</span> in Minutes.
-                </motion.h1>
-
-                <motion.p
-                  variants={fadeInUp}
-                  custom={2}
-                  className="text-lg text-muted-foreground sm:text-xl max-w-2xl mx-auto lg:mx-0 leading-relaxed"
-                >
-                  Describe what your device does in simple words. We turn your requirements into ready-to-run device code, a cloud backend, and a web dashboard—no coding needed.
-                </motion.p>
-
-                <motion.div
-                  variants={fadeInUp}
-                  custom={3}
-                  className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-2"
-                >
-                  <Link href="/sign-up">
-                    <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-7 shadow-lg hover:shadow-primary/20 transition-all">
-                      Create Your Device
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Link href="/sign-in">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto text-base hover:bg-muted/80">
-                      Sign In
-                    </Button>
-                  </Link>
-                </motion.div>
-
-                <motion.p variants={fadeInUp} custom={4} className="text-xs text-muted-foreground pt-1">
-                  Free to start • No credit card required • Works with hardware you already own
-                </motion.p>
+                <Link href="/sign-up">
+                  <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-7 shadow-lg hover:shadow-primary/20 transition-all">
+                    Create Your Device
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link href="/sign-in">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto text-base hover:bg-muted/80">
+                    Sign In
+                  </Button>
+                </Link>
               </motion.div>
 
-              {/* Application Demo Visual */}
+              <motion.p
+                initial="hidden"
+                animate="visible"
+                variants={fadeInUp}
+                custom={4}
+                className="text-xs text-muted-foreground pt-1"
+              >
+                Free to start • No credit card required • Works with hardware you already own
+              </motion.p>
+
+              {/* Application Demo */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
-                className="lg:col-span-5"
+                transition={{ duration: 0.6, delay: 0.5, ease: 'easeOut' }}
+                className="pt-12 max-w-2xl mx-auto"
               >
                 <div className="rounded-2xl border border-border bg-gradient-to-br from-card/95 to-card/80 p-6 shadow-2xl backdrop-blur relative overflow-hidden group hover:border-primary/40 transition-all">
                   {/* Demo Header */}
