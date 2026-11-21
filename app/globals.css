@@ -55,7 +55,20 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-inter), system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Headings use Space Grotesk */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-space-grotesk), system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* Mono font for technical bits */
+  code, kbd, samp, pre, .font-mono {
+    font-family: var(--font-jetbrains-mono), 'Courier New', monospace;
   }
 }
 

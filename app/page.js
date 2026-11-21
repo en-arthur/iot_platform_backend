@@ -82,7 +82,7 @@ export default function LandingPage() {
                 <motion.h1
                   variants={fadeInUp}
                   custom={1}
-                  className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground"
+                  className="text-4xl font-extrabold tracking-tighter sm:text-5xl lg:text-6xl text-foreground font-heading"
                 >
                   From Hardware Description to a <span className="text-primary underline decoration-primary/40 underline-offset-8">Working Device</span> in Minutes.
                 </motion.h1>
