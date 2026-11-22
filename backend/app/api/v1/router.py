@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
     audit,
-    behavior,
     chat,
     deployment,
     devices,
@@ -23,9 +22,6 @@ api_router.include_router(library.router)
 
 # Projects & Spec Engine router
 api_router.include_router(projects.router)
-
-# Behavior Draft router
-api_router.include_router(behavior.router)
 
 # AI Proposals router
 api_router.include_router(proposals.router)
